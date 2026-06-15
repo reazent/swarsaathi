@@ -23,10 +23,20 @@ const SWARAS = [
 ];
 
 const LEVELS = {
-  beginner: { tol: 35, sustainMs: 1500 },
-  intermediate: { tol: 20, sustainMs: 1800 },
-  expert: { tol: 10, sustainMs: 2200 },
+  // tol: cents window for "in tune"; minClarity: how tonal the signal must be
+  // (rejects noise/speech); noiseMult: how far above the room floor you must sing.
+  beginner: { tol: 35, sustainMs: 1500, minClarity: 0.80, noiseMult: 2.2 },
+  intermediate: { tol: 20, sustainMs: 1800, minClarity: 0.86, noiseMult: 2.6 },
+  expert: { tol: 10, sustainMs: 2200, minClarity: 0.91, noiseMult: 3.0 },
 };
+
+// Noise-rejection tuning (shared across levels)
+const ABS_MIN_RMS = 0.012; // absolute silence floor — below this is never voice
+const SILENCE_RMS = 0.005; // skip pitch math entirely below this
+const SETTLE_MS = 600; // learn the room's noise floor before reacting
+const HOLD_MS = 140; // keep last reading through tiny dropouts (anti-flicker)
+const FMIN = 70; // Hz — below human singing range
+const FMAX = 1100; // Hz — above practical singing range
 
 const SA_MIDI_MIN = 43; // G2
 const SA_MIDI_MAX = 62; // D4
@@ -52,6 +62,12 @@ let smoothFreq = 0;
 let sustainStart = 0;
 let droneNodes = null;
 let inited = false;
+
+// noise-rejection state
+let noiseFloor = ABS_MIN_RMS;
+let settleUntil = 0;
+let lastVoiceAt = 0;
+let calibrated = false;
 
 export function init() {
   if (inited) return;
@@ -201,10 +217,12 @@ async function startListening() {
     micBtn.classList.add("on");
     micLabel.textContent = "Stop";
     stage.hidden = false;
-    statusEl.textContent = droneToggle.checked
-      ? "Drone on — use headphones so it doesn't affect detection."
-      : "Listening… sing a sustained note.";
+    statusEl.textContent = "Calibrating to your room — stay quiet for a moment…";
     smoothFreq = 0;
+    noiseFloor = ABS_MIN_RMS;
+    settleUntil = performance.now() + SETTLE_MS;
+    lastVoiceAt = 0;
+    calibrated = false;
     loop();
   } catch (err) {
     console.error(err);
@@ -235,13 +253,40 @@ function loop() {
   rafId = requestAnimationFrame(loop);
   if (!analyser) return;
   analyser.getFloatTimeDomainData(buf);
-  const freq = autoCorrelate(buf, audioCtx.sampleRate);
+  const { freq, clarity, rms } = autoCorrelate(buf, audioCtx.sampleRate);
+  const now = performance.now();
+  const lv = LEVELS[level];
 
-  if (freq < 0 || freq < 70 || freq > 1100) {
+  // Phase 1: learn the room's ambient level; don't react to anything yet.
+  if (now < settleUntil) {
+    noiseFloor = Math.max(noiseFloor, rms);
     renderIdle();
     return;
   }
-  smoothFreq = smoothFreq ? smoothFreq * 0.78 + freq * 0.22 : freq;
+  if (!calibrated) {
+    calibrated = true;
+    if (statusEl) {
+      statusEl.textContent = droneToggle.checked
+        ? "Drone on — use headphones so it doesn't affect detection."
+        : "Listening… sing a sustained note.";
+    }
+  }
+
+  // A frame counts as the user's voice only if it is loud enough relative to the
+  // room, in singing range, AND tonal (clarity) — this is what rejects noise.
+  const gate = Math.max(ABS_MIN_RMS, noiseFloor * lv.noiseMult);
+  const isVoice = freq >= FMIN && freq <= FMAX && rms >= gate && clarity >= lv.minClarity;
+
+  if (!isVoice) {
+    // Adapt the floor from non-voice frames (clamped so a loud clap can't spike it).
+    noiseFloor = noiseFloor * 0.96 + Math.min(rms, noiseFloor * 1.5) * 0.04;
+    // Hold the last reading briefly so micro-dropouts don't cause flicker.
+    if (now - lastVoiceAt > HOLD_MS) renderIdle();
+    return;
+  }
+
+  lastVoiceAt = now;
+  smoothFreq = smoothFreq ? smoothFreq * 0.8 + freq * 0.2 : freq;
   render(smoothFreq);
 }
 
@@ -362,7 +407,9 @@ function autoCorrelate(b, sampleRate) {
   let rms = 0;
   for (let i = 0; i < SIZE; i += 1) rms += b[i] * b[i];
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.01) return -1; // too quiet
+  // Report rms even when there's no pitch, so the noise-floor tracker can learn.
+  const NONE = { freq: -1, clarity: 0, rms };
+  if (rms < SILENCE_RMS) return NONE;
 
   let r1 = 0;
   let r2 = SIZE - 1;
@@ -388,7 +435,11 @@ function autoCorrelate(b, sampleRate) {
   for (let i = d; i < n; i += 1) {
     if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
   }
-  if (maxpos <= 0) return -1;
+  if (maxpos <= 0) return NONE;
+
+  // Clarity = normalised periodicity (peak / zero-lag energy). Sung notes ~0.9+;
+  // noise, speech and clatter score much lower → the loop rejects them.
+  const clarity = c[0] > 0 ? maxval / c[0] : 0;
 
   let T0 = maxpos;
   const x1 = c[T0 - 1] || 0;
@@ -398,8 +449,8 @@ function autoCorrelate(b, sampleRate) {
   const bb = (x3 - x1) / 2;
   if (a) T0 -= bb / (2 * a);
 
-  return sampleRate / T0;
+  return { freq: sampleRate / T0, clarity, rms };
 }
 
 // expose math for quick verification in dev console
-window.riyazDebug = { frequencyToSwara, midiToFreq, midiName };
+window.riyazDebug = { frequencyToSwara, midiToFreq, midiName, autoCorrelate };
