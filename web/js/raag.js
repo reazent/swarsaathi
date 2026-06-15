@@ -1,4 +1,4 @@
-// Raag Practice — recorded tanpura + tabla, matra display, taal picker (Teental free / Dadra Pro).
+// Raag Practice — recorded tabla + matra display. Tanpura removed until studio-quality engine ships.
 
 import { $ } from "./shared.js";
 import * as account from "./account.js";
@@ -7,7 +7,6 @@ const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", 
 const SA_MIDI_MIN = 43;
 const SA_MIDI_MAX = 62;
 const SA_MIDI_DEFAULT = 48;
-const TANPURA_REF_MIDI = 48; // Sa of the bundled tanpura recording (~C3)
 
 const midiToFreq = (m) => 440 * 2 ** ((m - 69) / 12);
 const midiName = (m) => `${NOTE_NAMES[((m % 12) + 12) % 12]}${Math.floor(m / 12) - 1}`;
@@ -72,29 +71,23 @@ const BOL_SAMPLES = {
   Ta: "/static/audio/tabla/ta.mp3",
   Na: "/static/audio/tabla/na.mp3",
 };
-const TANPURA_SAMPLE = "/static/audio/tanpura/tanpura-drone.mp3";
 
-let saSelect, taalSelect, bpmInput, bpmVal, tanpuraToggle, tablaToggle;
-let tanpuraVolInput, tablaVolInput, playBtn, playLabel, statusEl;
+let saSelect, taalSelect, bpmInput, bpmVal, tablaVolInput, playBtn, playLabel, statusEl;
 let taalTitle, taalLegend, matraGrid;
 let matraCells = [];
 
 let saMidi = SA_MIDI_DEFAULT;
 let currentTaalId = "teental";
 let bpm = 60;
-let tanpuraVol = 0.7;
 let tablaVol = 0.85;
 let playing = false;
 let audioCtx = null;
-let tanpuraNodes = null;
-let tanpuraGain = null;
 let tablaGain = null;
 let schedulerId = null;
 let nextBeatTime = 0;
 let currentMatra = 0;
 let inited = false;
 let sampleBuffers = {};
-let tanpuraBuffer = null;
 let samplesReady = false;
 let samplesLoading = null;
 
@@ -106,9 +99,6 @@ export function init() {
   taalSelect = $("g-taal");
   bpmInput = $("g-bpm");
   bpmVal = $("g-bpm-val");
-  tanpuraToggle = $("g-tanpura");
-  tablaToggle = $("g-tabla");
-  tanpuraVolInput = $("g-tanpura-vol");
   tablaVolInput = $("g-tabla-vol");
   playBtn = $("g-play");
   playLabel = $("g-play-label");
@@ -127,11 +117,6 @@ export function init() {
     bpmVal.textContent = String(bpm);
   });
 
-  saSelect.addEventListener("change", () => {
-    saMidi = parseInt(saSelect.value, 10);
-    if (playing && tanpuraToggle.checked) restartTanpura();
-  });
-
   taalSelect.addEventListener("change", () => {
     const id = taalSelect.value;
     if (TAALS[id].pro && !account.hasRaagTaal(id)) {
@@ -146,7 +131,6 @@ export function init() {
     }
   });
 
-  tanpuraVolInput.addEventListener("input", applyVolumes);
   tablaVolInput.addEventListener("input", applyVolumes);
 
   playBtn.addEventListener("click", () => {
@@ -254,9 +238,7 @@ function currentTaal() {
 }
 
 function applyVolumes() {
-  tanpuraVol = parseInt(tanpuraVolInput?.value || "70", 10) / 100;
   tablaVol = parseInt(tablaVolInput?.value || "85", 10) / 100;
-  if (tanpuraGain) tanpuraGain.gain.value = tanpuraVol;
   if (tablaGain) tablaGain.gain.value = tablaVol;
 }
 
@@ -267,10 +249,6 @@ function ensureContext() {
     tablaGain = audioCtx.createGain();
     tablaGain.connect(audioCtx.destination);
   }
-  if (!tanpuraGain) {
-    tanpuraGain = audioCtx.createGain();
-    tanpuraGain.connect(audioCtx.destination);
-  }
   applyVolumes();
   return audioCtx;
 }
@@ -280,19 +258,13 @@ async function loadSamples() {
   if (samplesLoading) return samplesLoading;
   samplesLoading = (async () => {
     ensureContext();
-    const fetches = [
-      ...Object.entries(BOL_SAMPLES).map(async ([bol, url]) => {
+    await Promise.all(
+      Object.entries(BOL_SAMPLES).map(async ([bol, url]) => {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Failed to load ${bol}`);
         sampleBuffers[bol] = await audioCtx.decodeAudioData(await res.arrayBuffer());
       }),
-      (async () => {
-        const res = await fetch(TANPURA_SAMPLE);
-        if (!res.ok) throw new Error("Failed to load tanpura");
-        tanpuraBuffer = await audioCtx.decodeAudioData(await res.arrayBuffer());
-      })(),
-    ];
-    await Promise.all(fetches);
+    );
     samplesReady = true;
   })();
   return samplesLoading;
@@ -301,12 +273,12 @@ async function loadSamples() {
 async function start() {
   ensureContext();
   if (!samplesReady) {
-    if (statusEl) statusEl.textContent = "Loading samples…";
+    if (statusEl) statusEl.textContent = "Loading tabla samples…";
     try {
       await loadSamples();
     } catch (err) {
       console.error(err);
-      if (statusEl) statusEl.textContent = "Couldn't load audio samples — refresh and try again.";
+      if (statusEl) statusEl.textContent = "Couldn't load tabla samples — refresh and try again.";
       return;
     }
   }
@@ -316,7 +288,6 @@ async function start() {
   const t = currentTaal();
   statusEl.textContent = `${t.name} · ${bpm} BPM — looping`;
 
-  if (tanpuraToggle.checked) startTanpura();
   currentMatra = 0;
   nextBeatTime = audioCtx.currentTime + 0.08;
   schedulerId = setInterval(scheduleBeats, 25);
@@ -326,49 +297,14 @@ function stop() {
   playing = false;
   if (schedulerId) clearInterval(schedulerId);
   schedulerId = null;
-  stopTanpura();
   clearHighlight();
   if (playBtn) {
     playBtn.classList.remove("on");
     playLabel.textContent = "Start practice";
   }
-  if (statusEl) statusEl.textContent = "Set pitch and tempo, then start — matras loop until you stop.";
-}
-
-function restartTanpura() {
-  stopTanpura();
-  startTanpura();
-}
-
-function startTanpura() {
-  stopTanpura();
-  if (!tanpuraBuffer || !audioCtx) return;
-  const ctx = audioCtx;
-  const src = ctx.createBufferSource();
-  src.buffer = tanpuraBuffer;
-  src.loop = true;
-  src.playbackRate.value = midiToFreq(saMidi) / midiToFreq(TANPURA_REF_MIDI);
-
-  const fade = ctx.createGain();
-  fade.gain.value = 0;
-  fade.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.6);
-
-  src.connect(fade).connect(tanpuraGain);
-  src.start();
-  tanpuraNodes = { src, fade };
-}
-
-function stopTanpura() {
-  if (!tanpuraNodes || !audioCtx) return;
-  const { src, fade } = tanpuraNodes;
-  try {
-    fade.gain.cancelScheduledValues(audioCtx.currentTime);
-    fade.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-    src.stop(audioCtx.currentTime + 0.35);
-  } catch (_e) {
-    /* already stopped */
+  if (statusEl) {
+    statusEl.textContent = "Set taal and tempo, then start — matras loop until you stop.";
   }
-  tanpuraNodes = null;
 }
 
 function scheduleBeats() {
@@ -378,9 +314,7 @@ function scheduleBeats() {
   const horizon = 0.12;
 
   while (nextBeatTime < audioCtx.currentTime + horizon) {
-    if (tablaToggle.checked) {
-      playBol(t.sequence[currentMatra].bol, nextBeatTime);
-    }
+    playBol(t.sequence[currentMatra].bol, nextBeatTime);
     const idx = currentMatra;
     const delay = Math.max(0, (nextBeatTime - audioCtx.currentTime) * 1000);
     setTimeout(() => {
