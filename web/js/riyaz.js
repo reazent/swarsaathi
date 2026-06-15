@@ -30,13 +30,17 @@ const LEVELS = {
   expert: { tol: 10, sustainMs: 2200, minClarity: 0.91, noiseMult: 3.0 },
 };
 
-// Noise-rejection tuning (shared across levels)
-const ABS_MIN_RMS = 0.012; // absolute silence floor — below this is never voice
-const SILENCE_RMS = 0.005; // skip pitch math entirely below this
-const SETTLE_MS = 600; // learn the room's noise floor before reacting
-const HOLD_MS = 140; // keep last reading through tiny dropouts (anti-flicker)
-const FMIN = 70; // Hz — below human singing range
-const FMAX = 1100; // Hz — above practical singing range
+// Noise-rejection + stability tuning
+const ABS_MIN_RMS = 0.012;
+const SILENCE_RMS = 0.005;
+const SETTLE_MS = 600;
+const HOLD_MS = 280; // hold display through brief dropouts
+const FMIN = 70;
+const FMAX = 1100;
+const FREQ_RING = 11; // median window — kills single-frame spikes
+const NOTE_SWITCH_FRAMES = 5; // consecutive frames before changing swara
+const NOTE_SWITCH_CENTS = 42; // must lean this far toward a neighbour to switch
+const CENTS_SMOOTH = 0.88; // heavy smoothing on needle (0–1, higher = steadier)
 
 const SA_MIDI_MIN = 43; // G2
 const SA_MIDI_MAX = 62; // D4
@@ -59,15 +63,21 @@ let micStream = null;
 let rafId = null;
 let buf = null;
 let smoothFreq = 0;
+let smoothCents = 0;
 let sustainStart = 0;
 let droneNodes = null;
 let inited = false;
 
-// noise-rejection state
+// noise-rejection + pitch-lock state
 let noiseFloor = ABS_MIN_RMS;
 let settleUntil = 0;
 let lastVoiceAt = 0;
 let calibrated = false;
+let freqRing = [];
+let lockedOffset = null; // semitones from Sa (integer)
+let candidateOffset = null;
+let candidateCount = 0;
+let lastRender = null; // last stable UI snapshot for hold
 
 export function init() {
   if (inited) return;
@@ -98,6 +108,11 @@ export function init() {
 
   saSelect.addEventListener("change", () => {
     saMidi = parseInt(saSelect.value, 10);
+    lockedOffset = null;
+    candidateOffset = null;
+    candidateCount = 0;
+    smoothCents = 0;
+    freqRing = [];
     if (droneNodes) startDrone(); // retune live drone
   });
 
@@ -210,7 +225,7 @@ async function startListening() {
     });
     const source = audioCtx.createMediaStreamSource(micStream);
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
+    analyser.fftSize = 4096; // finer low-note resolution → fewer harmonic misreads
     buf = new Float32Array(analyser.fftSize);
     source.connect(analyser);
 
@@ -219,10 +234,16 @@ async function startListening() {
     stage.hidden = false;
     statusEl.textContent = "Calibrating to your room — stay quiet for a moment…";
     smoothFreq = 0;
+    smoothCents = 0;
     noiseFloor = ABS_MIN_RMS;
     settleUntil = performance.now() + SETTLE_MS;
     lastVoiceAt = 0;
     calibrated = false;
+    freqRing = [];
+    lockedOffset = null;
+    candidateOffset = null;
+    candidateCount = 0;
+    lastRender = null;
     loop();
   } catch (err) {
     console.error(err);
@@ -278,16 +299,91 @@ function loop() {
   const isVoice = freq >= FMIN && freq <= FMAX && rms >= gate && clarity >= lv.minClarity;
 
   if (!isVoice) {
-    // Adapt the floor from non-voice frames (clamped so a loud clap can't spike it).
     noiseFloor = noiseFloor * 0.96 + Math.min(rms, noiseFloor * 1.5) * 0.04;
-    // Hold the last reading briefly so micro-dropouts don't cause flicker.
-    if (now - lastVoiceAt > HOLD_MS) renderIdle();
+    if (now - lastVoiceAt > HOLD_MS) {
+      lockedOffset = null;
+      candidateOffset = null;
+      candidateCount = 0;
+      lastRender = null;
+      renderIdle();
+    } else if (lastRender) {
+      paint(lastRender);
+    }
     return;
   }
 
   lastVoiceAt = now;
-  smoothFreq = smoothFreq ? smoothFreq * 0.8 + freq * 0.2 : freq;
-  render(smoothFreq);
+  const stable = stabilisePitch(freq);
+  if (stable) paint(stable);
+}
+
+function median(arr) {
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+// Fold raw detection into singing range, median-filter, then lock swara with hysteresis.
+function stabilisePitch(rawFreq) {
+  const folded = foldFundamental(rawFreq);
+  freqRing.push(folded);
+  if (freqRing.length > FREQ_RING) freqRing.shift();
+  if (freqRing.length < 3) return null;
+
+  const med = median(freqRing);
+  smoothFreq = smoothFreq ? smoothFreq * 0.55 + med * 0.45 : med;
+
+  const offset = Math.round(12 * Math.log2(smoothFreq / midiToFreq(saMidi)));
+
+  if (lockedOffset === null) {
+    lockedOffset = offset;
+    candidateOffset = null;
+    candidateCount = 0;
+  } else if (offset !== lockedOffset) {
+    const lockedTarget = midiToFreq(saMidi + lockedOffset);
+    const centsFromLocked = 1200 * Math.log2(smoothFreq / lockedTarget);
+    if (Math.abs(centsFromLocked) >= NOTE_SWITCH_CENTS) {
+      if (candidateOffset === offset) candidateCount += 1;
+      else { candidateOffset = offset; candidateCount = 1; }
+      if (candidateCount >= NOTE_SWITCH_FRAMES) {
+        lockedOffset = offset;
+        candidateOffset = null;
+        candidateCount = 0;
+        smoothCents = 0;
+      }
+    } else {
+      candidateOffset = null;
+      candidateCount = 0;
+    }
+  } else {
+    candidateOffset = null;
+    candidateCount = 0;
+  }
+
+  const lockedMidi = saMidi + lockedOffset;
+  const lockedTarget = midiToFreq(lockedMidi);
+  const cents = 1200 * Math.log2(smoothFreq / lockedTarget);
+  smoothCents = smoothCents ? smoothCents * CENTS_SMOOTH + cents * (1 - CENTS_SMOOTH) : cents;
+
+  const idx = ((lockedOffset % 12) + 12) % 12;
+  const octave = Math.floor(lockedOffset / 12);
+
+  lastRender = {
+    idx,
+    octave,
+    cents: smoothCents,
+    swara: SWARAS[idx],
+    western: midiName(lockedMidi),
+    freq: smoothFreq,
+  };
+  return lastRender;
+}
+
+function foldFundamental(freq) {
+  let f = freq;
+  while (f > FMAX * 1.02) f /= 2;
+  while (f < FMIN * 0.98) f *= 2;
+  return f;
 }
 
 function renderIdle() {
@@ -308,8 +404,7 @@ function renderIdle() {
   sustainStart = 0;
 }
 
-function render(freq) {
-  const { idx, octave, cents, swara, western } = frequencyToSwara(freq, saMidi);
+function paint({ idx, octave, cents, swara, western, freq }) {
   const tol = LEVELS[level].tol;
   const color = centsColor(cents, tol);
 
@@ -336,7 +431,6 @@ function render(freq) {
     if (on) el.style.setProperty("--pip", color);
   });
 
-  // Sustain ring: fill while held within tolerance.
   if (Math.abs(cents) <= tol) {
     if (!sustainStart) sustainStart = performance.now();
     const held = performance.now() - sustainStart;
@@ -428,20 +522,36 @@ function autoCorrelate(b, sampleRate) {
     for (let j = 0; j < n - i; j += 1) c[i] += trimmed[j] * trimmed[j + i];
   }
 
-  let d = 0;
-  while (d < n - 1 && c[d] > c[d + 1]) d += 1;
-  let maxval = -1;
-  let maxpos = -1;
-  for (let i = d; i < n; i += 1) {
-    if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+  const minLag = Math.floor(sampleRate / FMAX);
+  const maxLag = Math.min(n - 1, Math.ceil(sampleRate / FMIN));
+
+  let d = minLag;
+  while (d < maxLag && c[d] > c[d + 1]) d += 1;
+
+  // Pick the strongest peak in the singing range; prefer lower lag (fundamental)
+  // when two peaks are close in strength — stops octave-hopping on phone speakers.
+  let bestLag = -1;
+  let bestVal = -1;
+  for (let i = d; i <= maxLag; i += 1) {
+    if (c[i] <= 0) continue;
+    const score = c[i] * (1 + 0.08 * (maxLag - i) / maxLag);
+    if (score > bestVal) {
+      bestVal = score;
+      bestLag = i;
+    }
   }
-  if (maxpos <= 0) return NONE;
+  if (bestLag <= 0) return NONE;
 
-  // Clarity = normalised periodicity (peak / zero-lag energy). Sung notes ~0.9+;
-  // noise, speech and clatter score much lower → the loop rejects them.
-  const clarity = c[0] > 0 ? maxval / c[0] : 0;
+  // Prefer the fundamental when harmonics are equally strong (phone speaker → mic).
+  let fundLag = bestLag;
+  while (fundLag * 2 <= maxLag && c[fundLag * 2] >= c[fundLag] * 0.82) {
+    fundLag *= 2;
+  }
+  bestLag = fundLag;
 
-  let T0 = maxpos;
+  const clarity = c[0] > 0 ? c[bestLag] / c[0] : 0;
+
+  let T0 = bestLag;
   const x1 = c[T0 - 1] || 0;
   const x2 = c[T0];
   const x3 = c[T0 + 1] || 0;
@@ -453,4 +563,4 @@ function autoCorrelate(b, sampleRate) {
 }
 
 // expose math for quick verification in dev console
-window.riyazDebug = { frequencyToSwara, midiToFreq, midiName, autoCorrelate };
+window.riyazDebug = { frequencyToSwara, midiToFreq, midiName, autoCorrelate, foldFundamental, stabilisePitch };
