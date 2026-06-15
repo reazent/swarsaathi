@@ -23,24 +23,24 @@ const SWARAS = [
 ];
 
 const LEVELS = {
-  // tol: cents window for "in tune"; minClarity: how tonal the signal must be
-  // (rejects noise/speech); noiseMult: how far above the room floor you must sing.
-  beginner: { tol: 35, sustainMs: 1500, minClarity: 0.80, noiseMult: 2.2 },
-  intermediate: { tol: 20, sustainMs: 1800, minClarity: 0.86, noiseMult: 2.6 },
-  expert: { tol: 10, sustainMs: 2200, minClarity: 0.91, noiseMult: 3.0 },
+  // tol: cents window for "in tune"; minClarity / noiseMult: voice gate (softened)
+  beginner: { tol: 35, sustainMs: 1500, minClarity: 0.68, noiseMult: 1.55 },
+  intermediate: { tol: 20, sustainMs: 1800, minClarity: 0.74, noiseMult: 1.85 },
+  expert: { tol: 10, sustainMs: 2200, minClarity: 0.82, noiseMult: 2.15 },
 };
 
 // Noise-rejection + stability tuning
-const ABS_MIN_RMS = 0.012;
-const SILENCE_RMS = 0.005;
-const SETTLE_MS = 600;
-const HOLD_MS = 280; // hold display through brief dropouts
+const ABS_MIN_RMS = 0.007;
+const SILENCE_RMS = 0.004;
+const SETTLE_MS = 450;
+const HOLD_MS = 320;
 const FMIN = 70;
 const FMAX = 1100;
-const FREQ_RING = 11; // median window — kills single-frame spikes
-const NOTE_SWITCH_FRAMES = 5; // consecutive frames before changing swara
-const NOTE_SWITCH_CENTS = 42; // must lean this far toward a neighbour to switch
-const CENTS_SMOOTH = 0.88; // heavy smoothing on needle (0–1, higher = steadier)
+const FREQ_RING = 9;
+const NOTE_SWITCH_FRAMES = 4;
+const NOTE_SWITCH_CENTS = 38;
+const CENTS_SMOOTH = 0.82;
+const GATE_RMS_CAP = 0.055; // gate never demands louder than this
 
 const SA_MIDI_MIN = 43; // G2
 const SA_MIDI_MAX = 62; // D4
@@ -278,14 +278,17 @@ function loop() {
   const now = performance.now();
   const lv = LEVELS[level];
 
-  // Phase 1: learn the room's ambient level; don't react to anything yet.
+  // Phase 1: learn quiet ambient level only — ignore loud spikes during calibration.
   if (now < settleUntil) {
-    noiseFloor = Math.max(noiseFloor, rms);
+    if (rms < 0.025) {
+      noiseFloor = noiseFloor * 0.88 + rms * 0.12;
+    }
     renderIdle();
     return;
   }
   if (!calibrated) {
     calibrated = true;
+    noiseFloor = Math.min(noiseFloor, 0.018); // don't inherit an over-estimated floor
     if (statusEl) {
       statusEl.textContent = droneToggle.checked
         ? "Drone on — use headphones so it doesn't affect detection."
@@ -293,10 +296,16 @@ function loop() {
     }
   }
 
-  // A frame counts as the user's voice only if it is loud enough relative to the
-  // room, in singing range, AND tonal (clarity) — this is what rejects noise.
-  const gate = Math.max(ABS_MIN_RMS, noiseFloor * lv.noiseMult);
-  const isVoice = freq >= FMIN && freq <= FMAX && rms >= gate && clarity >= lv.minClarity;
+  const gate = Math.min(
+    Math.max(ABS_MIN_RMS, noiseFloor * lv.noiseMult),
+    GATE_RMS_CAP,
+  );
+  const hasPitch = freq >= FMIN && freq <= FMAX;
+  // Strong pass: clear tonal signal. Soft pass: slightly weaker but still pitched —
+  // lets real singing / phone-speaker tests through without opening the door to noise.
+  const strongVoice = hasPitch && rms >= gate && clarity >= lv.minClarity;
+  const softVoice = hasPitch && rms >= gate * 0.72 && clarity >= lv.minClarity * 0.88;
+  const isVoice = strongVoice || softVoice;
 
   if (!isVoice) {
     noiseFloor = noiseFloor * 0.96 + Math.min(rms, noiseFloor * 1.5) * 0.04;
@@ -314,7 +323,11 @@ function loop() {
 
   lastVoiceAt = now;
   const stable = stabilisePitch(freq);
-  if (stable) paint(stable);
+  if (stable) {
+    paint(stable);
+  } else if (lastRender) {
+    paint(lastRender); // show provisional reading while the median buffer fills
+  }
 }
 
 function median(arr) {
@@ -328,10 +341,9 @@ function stabilisePitch(rawFreq) {
   const folded = foldFundamental(rawFreq);
   freqRing.push(folded);
   if (freqRing.length > FREQ_RING) freqRing.shift();
-  if (freqRing.length < 3) return null;
 
-  const med = median(freqRing);
-  smoothFreq = smoothFreq ? smoothFreq * 0.55 + med * 0.45 : med;
+  const med = freqRing.length >= 3 ? median(freqRing) : folded;
+  smoothFreq = smoothFreq ? smoothFreq * 0.6 + med * 0.4 : med;
 
   const offset = Math.round(12 * Math.log2(smoothFreq / midiToFreq(saMidi)));
 
@@ -544,7 +556,7 @@ function autoCorrelate(b, sampleRate) {
 
   // Prefer the fundamental when harmonics are equally strong (phone speaker → mic).
   let fundLag = bestLag;
-  while (fundLag * 2 <= maxLag && c[fundLag * 2] >= c[fundLag] * 0.82) {
+  while (fundLag * 2 <= maxLag && c[fundLag * 2] >= c[fundLag] * 0.88) {
     fundLag *= 2;
   }
   bestLag = fundLag;
