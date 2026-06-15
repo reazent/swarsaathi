@@ -1,0 +1,405 @@
+// Riyaz: real-time swara tuner. Pick your Sa, sing a note, see the swara.
+// All client-side (Web Audio + mic) — no backend, no audio leaves the device.
+
+import { $ } from "./shared.js";
+
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+// 12 swaras relative to Sa (Hindustani), in Bhatkhande notation:
+// komal -> underline below the letter, tivra -> vertical line above (Ma only).
+const SWARAS = [
+  { letter: "Sa", variant: "shuddha", desc: "Shadja" },
+  { letter: "Re", variant: "komal", desc: "komal Re" },
+  { letter: "Re", variant: "shuddha", desc: "Shuddha Re" },
+  { letter: "Ga", variant: "komal", desc: "komal Ga" },
+  { letter: "Ga", variant: "shuddha", desc: "Shuddha Ga" },
+  { letter: "Ma", variant: "shuddha", desc: "Shuddha Ma" },
+  { letter: "Ma", variant: "tivra", desc: "tivra Ma" },
+  { letter: "Pa", variant: "shuddha", desc: "Pancham" },
+  { letter: "Dha", variant: "komal", desc: "komal Dha" },
+  { letter: "Dha", variant: "shuddha", desc: "Shuddha Dha" },
+  { letter: "Ni", variant: "komal", desc: "komal Ni" },
+  { letter: "Ni", variant: "shuddha", desc: "Shuddha Ni" },
+];
+
+const LEVELS = {
+  beginner: { tol: 35, sustainMs: 1500 },
+  intermediate: { tol: 20, sustainMs: 1800 },
+  expert: { tol: 10, sustainMs: 2200 },
+};
+
+const SA_MIDI_MIN = 43; // G2
+const SA_MIDI_MAX = 62; // D4
+const SA_MIDI_DEFAULT = 48; // C3
+
+const midiToFreq = (m) => 440 * 2 ** ((m - 69) / 12);
+const midiName = (m) => `${NOTE_NAMES[((m % 12) + 12) % 12]}${Math.floor(m / 12) - 1}`;
+
+// --- DOM refs ---
+let saSelect, levelGroup, droneToggle, micBtn, micLabel, statusEl, stage,
+  octaveEl, swaraEl, westernEl, freqEl, needleEl, zoneEl, centsEl, dirEl,
+  sustainEl, sustainLabel, scaleEl;
+
+// --- state ---
+let saMidi = SA_MIDI_DEFAULT;
+let level = "intermediate";
+let audioCtx = null;
+let analyser = null;
+let micStream = null;
+let rafId = null;
+let buf = null;
+let smoothFreq = 0;
+let sustainStart = 0;
+let droneNodes = null;
+let inited = false;
+
+export function init() {
+  if (inited) return;
+  inited = true;
+
+  saSelect = $("r-sa");
+  levelGroup = $("r-level");
+  droneToggle = $("r-drone");
+  micBtn = $("r-mic");
+  micLabel = $("r-mic-label");
+  statusEl = $("r-status");
+  stage = $("r-stage");
+  octaveEl = $("r-octave");
+  swaraEl = $("r-swara");
+  westernEl = $("r-western");
+  freqEl = $("r-freq");
+  needleEl = $("r-needle");
+  zoneEl = $("r-zone");
+  centsEl = $("r-cents");
+  dirEl = $("r-dir");
+  sustainEl = $("r-sustain");
+  sustainLabel = $("r-sustain-label");
+  scaleEl = $("r-scale");
+
+  buildSaOptions();
+  buildScale();
+  applyZoneWidth();
+
+  saSelect.addEventListener("change", () => {
+    saMidi = parseInt(saSelect.value, 10);
+    if (droneNodes) startDrone(); // retune live drone
+  });
+
+  levelGroup.querySelectorAll(".seg").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      level = btn.dataset.level;
+      levelGroup.querySelectorAll(".seg").forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      applyZoneWidth();
+    });
+  });
+
+  droneToggle.addEventListener("change", () => {
+    if (droneToggle.checked) {
+      ensureContext();
+      startDrone();
+      if (statusEl) statusEl.textContent = "Drone on — use headphones so it doesn't affect detection.";
+    } else {
+      stopDrone();
+    }
+  });
+
+  micBtn.addEventListener("click", () => {
+    if (micStream) stopListening();
+    else startListening();
+  });
+}
+
+// Called by the router when leaving Riyaz — free the mic + silence the drone.
+export function suspend() {
+  stopListening();
+  stopDrone();
+  if (droneToggle) droneToggle.checked = false;
+}
+
+function buildSaOptions() {
+  saSelect.innerHTML = "";
+  for (let m = SA_MIDI_MIN; m <= SA_MIDI_MAX; m += 1) {
+    const opt = document.createElement("option");
+    opt.value = String(m);
+    opt.textContent = `${midiName(m)} · ${midiToFreq(m).toFixed(1)} Hz`;
+    if (m === SA_MIDI_DEFAULT) opt.selected = true;
+    saSelect.appendChild(opt);
+  }
+  saMidi = SA_MIDI_DEFAULT;
+}
+
+function buildScale() {
+  scaleEl.innerHTML = "";
+  SWARAS.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.className = "swara-pip";
+    li.dataset.idx = String(i);
+    if (s.variant !== "shuddha") li.classList.add("altered");
+    li.title = s.desc;
+    const mark = document.createElement("span");
+    mark.className = `swara-mark ${s.variant}`;
+    mark.textContent = s.letter;
+    li.appendChild(mark);
+    scaleEl.appendChild(li);
+  });
+}
+
+// Map a frequency to a swara relative to the chosen Sa.
+export function frequencyToSwara(freq, saMidiNote) {
+  const saFreq = midiToFreq(saMidiNote);
+  const n = Math.round(12 * Math.log2(freq / saFreq));
+  const nearestMidi = saMidiNote + n;
+  const nearestFreq = midiToFreq(nearestMidi);
+  const cents = 1200 * Math.log2(freq / nearestFreq);
+  const idx = ((n % 12) + 12) % 12;
+  const octave = Math.floor(n / 12);
+  return {
+    idx,
+    octave,
+    cents,
+    swara: SWARAS[idx],
+    western: midiName(nearestMidi),
+    nearestFreq,
+  };
+}
+
+function applyZoneWidth() {
+  const tol = LEVELS[level].tol; // cents; track spans ±50 cents = 100%
+  zoneEl.style.left = `${50 - tol}%`;
+  zoneEl.style.width = `${tol * 2}%`;
+}
+
+// ---------- Audio context + mic ----------
+function ensureContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+async function startListening() {
+  try {
+    ensureContext();
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+    });
+    const source = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    buf = new Float32Array(analyser.fftSize);
+    source.connect(analyser);
+
+    micBtn.classList.add("on");
+    micLabel.textContent = "Stop";
+    stage.hidden = false;
+    statusEl.textContent = droneToggle.checked
+      ? "Drone on — use headphones so it doesn't affect detection."
+      : "Listening… sing a sustained note.";
+    smoothFreq = 0;
+    loop();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent =
+      err && err.name === "NotAllowedError"
+        ? "Microphone blocked. Allow mic access in your browser to use Riyaz."
+        : "Couldn't access the microphone on this device.";
+  }
+}
+
+function stopListening() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  if (micStream) {
+    micStream.getTracks().forEach((t) => t.stop());
+    micStream = null;
+  }
+  analyser = null;
+  if (micBtn) {
+    micBtn.classList.remove("on");
+    micLabel.textContent = "Start listening";
+  }
+  if (stage) stage.hidden = true;
+  if (statusEl) statusEl.textContent = "Tap “Start listening”, allow your mic, then sing a sustained note.";
+}
+
+function loop() {
+  rafId = requestAnimationFrame(loop);
+  if (!analyser) return;
+  analyser.getFloatTimeDomainData(buf);
+  const freq = autoCorrelate(buf, audioCtx.sampleRate);
+
+  if (freq < 0 || freq < 70 || freq > 1100) {
+    renderIdle();
+    return;
+  }
+  smoothFreq = smoothFreq ? smoothFreq * 0.78 + freq * 0.22 : freq;
+  render(smoothFreq);
+}
+
+function renderIdle() {
+  swaraEl.textContent = "—";
+  swaraEl.className = "swara-name";
+  swaraEl.style.color = "";
+  octaveEl.textContent = "";
+  westernEl.textContent = "—";
+  freqEl.textContent = "— Hz";
+  centsEl.textContent = "0";
+  dirEl.textContent = "";
+  needleEl.style.left = "50%";
+  needleEl.style.background = "rgba(255,255,255,0.4)";
+  sustainEl.style.setProperty("--fill", "0deg");
+  sustainEl.classList.remove("done");
+  sustainLabel.textContent = "sing";
+  scaleEl.querySelectorAll(".swara-pip").forEach((el) => el.classList.remove("active"));
+  sustainStart = 0;
+}
+
+function render(freq) {
+  const { idx, octave, cents, swara, western } = frequencyToSwara(freq, saMidi);
+  const tol = LEVELS[level].tol;
+  const color = centsColor(cents, tol);
+
+  swaraEl.textContent = swara.letter;
+  swaraEl.className = `swara-name swara-mark ${swara.variant}`;
+  swaraEl.style.color = color;
+  swaraEl.title = swara.desc;
+  octaveEl.textContent = octave === 0 ? "" : "•".repeat(Math.min(2, Math.abs(octave)));
+  octaveEl.className = `swara-octave ${octave > 0 ? "above" : octave < 0 ? "below" : ""}`;
+  westernEl.textContent = western;
+  freqEl.textContent = `${freq.toFixed(1)} Hz`;
+
+  const rounded = Math.round(cents);
+  centsEl.textContent = rounded > 0 ? `+${rounded}` : `${rounded}`;
+  dirEl.textContent = Math.abs(rounded) <= tol ? "in tune" : rounded < 0 ? "♭ flat" : "♯ sharp";
+  dirEl.style.color = color;
+
+  needleEl.style.left = `${Math.max(0, Math.min(100, 50 + cents))}%`;
+  needleEl.style.background = color;
+
+  scaleEl.querySelectorAll(".swara-pip").forEach((el) => {
+    const on = Number(el.dataset.idx) === idx;
+    el.classList.toggle("active", on);
+    if (on) el.style.setProperty("--pip", color);
+  });
+
+  // Sustain ring: fill while held within tolerance.
+  if (Math.abs(cents) <= tol) {
+    if (!sustainStart) sustainStart = performance.now();
+    const held = performance.now() - sustainStart;
+    const pct = Math.min(1, held / LEVELS[level].sustainMs);
+    sustainEl.style.setProperty("--fill", `${pct * 360}deg`);
+    if (pct >= 1) {
+      sustainEl.classList.add("done");
+      sustainLabel.textContent = "steady ✓";
+    } else {
+      sustainEl.classList.remove("done");
+      sustainLabel.textContent = "hold…";
+    }
+  } else {
+    sustainStart = 0;
+    sustainEl.style.setProperty("--fill", "0deg");
+    sustainEl.classList.remove("done");
+    sustainLabel.textContent = "hold steady";
+  }
+}
+
+// hue 130 (green) when in tune -> 0 (red) as deviation grows past ~3x tolerance.
+function centsColor(cents, tol) {
+  const ratio = Math.min(1, Math.max(0, (Math.abs(cents) - tol) / (tol * 2)));
+  const hue = 130 - ratio * 130;
+  return `hsl(${hue}, 80%, 58%)`;
+}
+
+// ---------- Sa drone (Sa-Pa-Sa reference) ----------
+function startDrone() {
+  stopDrone();
+  ensureContext();
+  const saFreq = midiToFreq(saMidi);
+  const voices = [saFreq / 2, saFreq, saFreq * 2 ** (7 / 12)]; // mandra Sa, Sa, Pa
+  const master = audioCtx.createGain();
+  master.gain.value = 0.0;
+  master.connect(audioCtx.destination);
+  master.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.4);
+
+  const oscs = voices.map((f) => {
+    const osc = audioCtx.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.value = f;
+    const g = audioCtx.createGain();
+    g.gain.value = 0.5;
+    osc.connect(g).connect(master);
+    osc.start();
+    return osc;
+  });
+  droneNodes = { master, oscs };
+}
+
+function stopDrone() {
+  if (!droneNodes) return;
+  const { master, oscs } = droneNodes;
+  try {
+    master.gain.cancelScheduledValues(audioCtx.currentTime);
+    master.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 0.2);
+    oscs.forEach((o) => o.stop(audioCtx.currentTime + 0.25));
+  } catch (_e) {
+    /* already stopped */
+  }
+  droneNodes = null;
+}
+
+// ---------- Pitch detection (autocorrelation + parabolic interpolation) ----------
+function autoCorrelate(b, sampleRate) {
+  const SIZE = b.length;
+  let rms = 0;
+  for (let i = 0; i < SIZE; i += 1) rms += b[i] * b[i];
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < 0.01) return -1; // too quiet
+
+  let r1 = 0;
+  let r2 = SIZE - 1;
+  const thres = 0.2;
+  for (let i = 0; i < SIZE / 2; i += 1) {
+    if (Math.abs(b[i]) < thres) { r1 = i; break; }
+  }
+  for (let i = 1; i < SIZE / 2; i += 1) {
+    if (Math.abs(b[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+  }
+
+  const trimmed = b.subarray(r1, r2);
+  const n = trimmed.length;
+  const c = new Float32Array(n);
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < n - i; j += 1) c[i] += trimmed[j] * trimmed[j + i];
+  }
+
+  let d = 0;
+  while (d < n - 1 && c[d] > c[d + 1]) d += 1;
+  let maxval = -1;
+  let maxpos = -1;
+  for (let i = d; i < n; i += 1) {
+    if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+  }
+  if (maxpos <= 0) return -1;
+
+  let T0 = maxpos;
+  const x1 = c[T0 - 1] || 0;
+  const x2 = c[T0];
+  const x3 = c[T0 + 1] || 0;
+  const a = (x1 + x3 - 2 * x2) / 2;
+  const bb = (x3 - x1) / 2;
+  if (a) T0 -= bb / (2 * a);
+
+  return sampleRate / T0;
+}
+
+// expose math for quick verification in dev console
+window.riyazDebug = { frequencyToSwara, midiToFreq, midiName };

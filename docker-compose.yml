@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pitch
+      POSTGRES_PASSWORD: pitch
+      POSTGRES_DB: indian_pitch
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://pitch:pitch@db:5432/indian_pitch
+      REDIS_URL: redis://redis:6379/0
+      APP_ENV: production
+    volumes:
+      - ./audio:/app/audio:ro
+      - ./labels.xlsx:/app/labels.xlsx:ro
+      - ./data:/app/data
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  pgdata:

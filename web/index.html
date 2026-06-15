@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Shruti — the pitch and discovery companion for Indian film music." />
+  <title>Shruti — Indian Film Music</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span class="brand-sa">सा</span></div>
+        <div class="brand-text">
+          <h1>Shruti</h1>
+          <p>Indian film music</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Tools">
+        <button class="nav-item active" data-view="pitch" type="button">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" />
+            </svg>
+          </span>
+          <span class="nav-label">Pitch Finder</span>
+        </button>
+        <button class="nav-item" data-view="discover" type="button">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
+            </svg>
+          </span>
+          <span class="nav-label">Discover</span>
+        </button>
+        <button class="nav-item" data-view="riyaz" type="button">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><path d="M12 18v3" />
+            </svg>
+          </span>
+          <span class="nav-label">Riyaz</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="account">
+          <div class="account-row">
+            <span id="acct-tier" class="acct-tier">Free</span>
+            <button id="acct-upgrade" type="button" class="acct-upgrade">Upgrade</button>
+          </div>
+          <p id="acct-meta" class="acct-meta"></p>
+        </div>
+        <p class="foot-note">More tools on the way — tanpura, taal, and lessons.</p>
+      </div>
+    </aside>
+
+    <main class="content">
+      <!-- ===================== PITCH FINDER ===================== -->
+      <section id="view-pitch" class="view" data-view="pitch">
+        <header class="view-head">
+          <h2 class="view-title">Pitch Finder</h2>
+          <p class="view-sub">Find the pitch of a film song — the note you tune to before you sing or play.</p>
+        </header>
+
+        <section class="panel search-panel">
+          <div class="search-wrap">
+            <span class="search-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>
+              </svg>
+            </span>
+            <input id="search" type="search" autocomplete="off" spellcheck="false"
+              placeholder="Search a song, film, or artist…" aria-label="Search songs" />
+            <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+          </div>
+        </section>
+
+        <section id="welcome" class="panel welcome-panel">
+          <div class="welcome-art" aria-hidden="true">
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+            <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+          </div>
+          <p class="welcome-text">Pick a song to see its pitch — its <strong>Sa</strong>, the home note for that recording.</p>
+        </section>
+
+        <section id="result" class="panel result-panel" hidden>
+          <div class="now-playing">
+            <div id="artwork" class="artwork" aria-hidden="true"></div>
+            <div class="track-copy">
+              <p class="now-label">Now showing</p>
+              <h3 id="result-title"></h3>
+              <p id="result-meta" class="result-meta"></p>
+            </div>
+          </div>
+
+          <div id="status" class="status" hidden>
+            <div class="pulse-ring" aria-hidden="true"></div>
+            <span id="status-text">Finding pitch…</span>
+          </div>
+
+          <div id="pitch-card" class="pitch-card" hidden>
+            <div class="pitch-card-inner">
+              <p class="pitch-label">Pitch</p>
+              <p class="pitch-value" id="pitch-value">—</p>
+              <p class="pitch-sa" id="pitch-sa">Sa · the home note for this song</p>
+              <p class="pitch-tip" id="pitch-tip">Tune your harmonium, tanpura, or keyboard to this note before you begin.</p>
+            </div>
+            <div class="pitch-glow" aria-hidden="true"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ===================== DISCOVER ===================== -->
+      <section id="view-discover" class="view" data-view="discover" hidden>
+        <header class="view-head">
+          <h2 class="view-title">Discover</h2>
+          <p class="view-sub">Browse the catalog by singer, music director, era, label, and pitch.</p>
+        </header>
+
+        <section class="panel filter-panel">
+          <div class="filter-row">
+            <div class="filter-field filter-text">
+              <label for="f-text">Search</label>
+              <input id="f-text" type="search" autocomplete="off" placeholder="Any word — title, film, artist…" />
+            </div>
+          </div>
+          <div class="filter-grid">
+            <div class="filter-field">
+              <label for="f-singer">Singer</label>
+              <select id="f-singer"><option value="">Any singer</option></select>
+            </div>
+            <div class="filter-field">
+              <label for="f-md">Music director</label>
+              <select id="f-md"><option value="">Any music director</option></select>
+            </div>
+            <div class="filter-field">
+              <label for="f-decade">Decade</label>
+              <select id="f-decade"><option value="">Any decade</option></select>
+            </div>
+            <div class="filter-field">
+              <label for="f-label">Label</label>
+              <select id="f-label"><option value="">Any label</option></select>
+            </div>
+            <div class="filter-field">
+              <label for="f-pitch">Pitch (Sa)</label>
+              <select id="f-pitch"><option value="">Any pitch</option></select>
+            </div>
+            <div class="filter-field filter-check">
+              <label class="check"><input type="checkbox" id="f-haspitch" /> <span>Only with known pitch</span></label>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <span id="discover-count" class="discover-count">—</span>
+            <button id="f-clear" type="button" class="ghost-btn">Clear filters</button>
+          </div>
+        </section>
+
+        <section id="discover-results" class="discover-results" aria-live="polite"></section>
+      </section>
+
+      <!-- ===================== RIYAZ (SWARA TUNER) ===================== -->
+      <section id="view-riyaz" class="view" data-view="riyaz" hidden>
+        <header class="view-head">
+          <h2 class="view-title">Riyaz</h2>
+          <p class="view-sub">Pick your Sa, sing a note, and see the swara you're hitting — in real time.</p>
+        </header>
+
+        <section class="panel riyaz-controls">
+          <div class="riyaz-control">
+            <label for="r-sa">Your Sa</label>
+            <select id="r-sa"></select>
+          </div>
+          <div class="riyaz-control">
+            <label>Strictness</label>
+            <div class="segmented" id="r-level" role="tablist" aria-label="Strictness">
+              <button type="button" class="seg" data-level="beginner" role="tab">Beginner</button>
+              <button type="button" class="seg active" data-level="intermediate" role="tab" aria-selected="true">Intermediate</button>
+              <button type="button" class="seg" data-level="expert" role="tab">Expert</button>
+            </div>
+          </div>
+          <div class="riyaz-control riyaz-toggles">
+            <label class="check"><input type="checkbox" id="r-drone" /> <span>Sa drone</span></label>
+          </div>
+          <div class="riyaz-control riyaz-mic">
+            <button id="r-mic" type="button" class="mic-btn">
+              <span class="mic-dot" aria-hidden="true"></span>
+              <span id="r-mic-label">Start listening</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel tuner-panel">
+          <p id="r-status" class="tuner-status">Tap “Start listening”, allow your mic, then sing a sustained note.</p>
+
+          <div class="tuner-stage" id="r-stage" hidden>
+            <div class="swara-readout">
+              <div class="swara-octave" id="r-octave" aria-hidden="true"></div>
+              <div class="swara-name" id="r-swara">—</div>
+              <div class="swara-sub"><span id="r-western">—</span> · <span id="r-freq">— Hz</span></div>
+            </div>
+
+            <div class="meter">
+              <div class="meter-track">
+                <span class="meter-tick meter-tick-l">−50</span>
+                <span class="meter-center" aria-hidden="true"></span>
+                <span class="meter-zone" id="r-zone" aria-hidden="true"></span>
+                <span class="meter-needle" id="r-needle" aria-hidden="true"></span>
+                <span class="meter-tick meter-tick-r">+50</span>
+              </div>
+              <div class="meter-readout"><span id="r-cents">0</span> cents <span id="r-dir" class="meter-dir"></span></div>
+            </div>
+
+            <div class="sustain">
+              <div class="sustain-ring" id="r-sustain"><span id="r-sustain-label">hold steady</span></div>
+            </div>
+          </div>
+
+          <ul class="swara-scale" id="r-scale" aria-hidden="true"></ul>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <nav class="mobile-tabs" aria-label="Tools">
+    <button class="tab active" data-view="pitch" type="button">Pitch</button>
+    <button class="tab" data-view="discover" type="button">Discover</button>
+    <button class="tab" data-view="riyaz" type="button">Riyaz</button>
+  </nav>
+
+  <div id="upgrade-modal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
+      <button id="upgrade-close" type="button" class="modal-close" aria-label="Close">×</button>
+      <p class="modal-kicker">Shruti Pro</p>
+      <h2 id="upgrade-title" class="modal-title">Unlock the full studio</h2>
+      <ul class="modal-perks">
+        <li><strong>Unlimited</strong> song pitch lookups</li>
+        <li>Analyze <strong>your own recordings</strong></li>
+        <li>Transpose &amp; best-Sa-for-your-voice</li>
+        <li>Riyaz: session recording, drills &amp; progress tracking</li>
+        <li>Tanpura &amp; shruti-box drones · offline · no ads</li>
+      </ul>
+      <button type="button" class="modal-cta" data-upgrade-cta>Coming soon</button>
+      <p class="modal-fineprint">Billing isn't live yet — this is a preview of what Pro includes.</p>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js" type="module"></script>
+</body>
+</html>

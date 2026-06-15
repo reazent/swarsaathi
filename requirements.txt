@@ -1,0 +1,22 @@
+# Web API
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic-settings>=2.6.0
+
+# Database (PostgreSQL in production, SQLite for local dev)
+sqlalchemy>=2.0.36
+psycopg[binary]>=3.2.0
+
+# Analysis
+numpy>=2.0.0
+librosa>=0.10.2
+soundfile>=0.12.1
+imageio-ffmpeg>=0.5.1
+
+# Labels tooling (existing scripts)
+openpyxl>=3.1.0
+mutagen>=1.47.0
+
+# Future: redis + celery for async jobs at scale
+# redis>=5.0.0
+# celery>=5.4.0

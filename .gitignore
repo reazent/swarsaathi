@@ -1,0 +1,44 @@
+# --- OS ---
+.DS_Store
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Data / DB (keep out of git; lives in object storage) ---
+data/*.db
+data/cache/
+data/
+
+# --- Audio corpus + ML weights (object storage, not git) ---
+audio/*
+!audio/.gitkeep
+models/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# --- Node / frontend build (future native/desktop) ---
+node_modules/
+dist/
+build/
+.expo/
+
+# --- Editor / misc ---
+.idea/
+*.log
+~$*.xlsx
