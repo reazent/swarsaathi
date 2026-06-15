@@ -52,6 +52,15 @@
           </span>
           <span class="nav-label">Riyaz</span>
         </button>
+        <button class="nav-item" data-view="raag" type="button">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="8" cy="8" r="3" /><circle cx="16" cy="16" r="3" />
+              <path d="M11 8h5a3 3 0 0 1 3 3v5" /><path d="M8 11V6a3 3 0 0 1 3-3h5" />
+            </svg>
+          </span>
+          <span class="nav-label">Raag</span>
+        </button>
       </nav>
 
       <div class="sidebar-foot">
@@ -62,7 +71,7 @@
           </div>
           <p id="acct-meta" class="acct-meta"></p>
         </div>
-        <p class="foot-note">More tools on the way — tanpura, taal, and lessons.</p>
+        <p class="foot-note">More tools on the way — lessons and recordings.</p>
       </div>
     </aside>
 
@@ -230,6 +239,49 @@
           <ul class="swara-scale" id="r-scale" aria-hidden="true"></ul>
         </section>
       </section>
+
+      <!-- ===================== RAAG PRACTICE ===================== -->
+      <section id="view-raag" class="view" data-view="raag" hidden>
+        <header class="view-head">
+          <h2 class="view-title">Raag Practice</h2>
+          <p class="view-sub">Tanpura and tabla for riyaz — pick your pitch and tempo, follow the matras.</p>
+        </header>
+
+        <section class="panel raag-controls">
+          <div class="raag-control">
+            <label for="g-sa">Pitch (Sa)</label>
+            <select id="g-sa"></select>
+          </div>
+          <div class="raag-control raag-bpm">
+            <label for="g-bpm">Tabla tempo <span id="g-bpm-val" class="bpm-readout">60</span> BPM</label>
+            <input id="g-bpm" type="range" min="40" max="120" value="60" step="1" aria-valuemin="40" aria-valuemax="120" aria-valuenow="60" />
+          </div>
+          <div class="raag-control raag-toggles">
+            <label class="check"><input type="checkbox" id="g-tanpura" checked /> <span>Tanpura</span></label>
+            <label class="check"><input type="checkbox" id="g-tabla" checked /> <span>Tabla</span></label>
+          </div>
+          <div class="raag-control raag-play">
+            <button id="g-play" type="button" class="play-btn">
+              <span class="play-icon" aria-hidden="true">▶</span>
+              <span id="g-play-label">Start practice</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel raag-panel">
+          <div class="raag-head">
+            <h3 class="raag-taal">Teental · 16 matras</h3>
+            <div class="sam-legend" aria-label="Sam markers">
+              <span class="legend-item taali"><strong>X</strong> Sam</span>
+              <span class="legend-item taali"><strong>2</strong> Taali</span>
+              <span class="legend-item khali"><strong>0</strong> Khali</span>
+              <span class="legend-item taali"><strong>3</strong> Taali</span>
+            </div>
+          </div>
+          <p id="g-status" class="raag-status">Set pitch and tempo, then start — matras loop until you stop.</p>
+          <div id="g-matra-grid" class="matra-grid" role="list" aria-label="Teental matras"></div>
+        </section>
+      </section>
     </main>
   </div>
 
@@ -237,6 +289,7 @@
     <button class="tab active" data-view="pitch" type="button">Pitch</button>
     <button class="tab" data-view="discover" type="button">Discover</button>
     <button class="tab" data-view="riyaz" type="button">Riyaz</button>
+    <button class="tab" data-view="raag" type="button">Raag</button>
   </nav>
 
   <div id="upgrade-modal" class="modal" hidden>

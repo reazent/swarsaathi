@@ -37,6 +37,9 @@ def entitlements_for(tier: str) -> dict:
         "riyaz_drills": pro,             # target-swara drills + scoring
         "riyaz_progress": pro,           # progress tracking over time
         "drone_styles": ["basic", "tanpura", "shruti-box"] if pro else ["basic"],
+        # Raag Practice
+        "raag_core": True,                 # Teental + tanpura free
+        "raag_taals": ["teental"] if not pro else ["teental", "dadra", "rupak", "jhaptal"],
         # General
         "ads": not pro,
         "offline": pro,

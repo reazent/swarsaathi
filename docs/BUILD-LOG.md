@@ -5,6 +5,18 @@ No scrolling through chat needed.
 
 ---
 
+## 2026-06-15 — Raag Practice (tanpura + Teental tabla + matras)
+
+### What I built
+- **Fourth product tab: Raag** — pitch (Sa) selector, BPM slider (40–120), tanpura/tabla toggles, Start/Stop loop.
+- **Teental** bols: `Dha Dhin Dhin Dha | Dha Dhin Dhin Dha | Dha Tin Tin Ta | Ta Dhin Dhin Dha`
+- **Sam markers:** X (Sam), 2, **0 (Khali)**, 3 — legend + labels on matra cells; vibhag dividers.
+- **Matra grid** highlights current beat in sync with tabla; loops until Stop.
+- **Tanpura:** 4-string drone; **tabla:** synthesised bol hits (real samples later).
+- Entitlements: `raag_core` free; more taals Pro later.
+
+---
+
 ## 2026-06-15 — Monetization gating (free vs Pro) + infra plan
 
 ### What I built (server-side enforced, UI reflects it)

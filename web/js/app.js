@@ -3,12 +3,14 @@
 import * as pitch from "./pitch.js";
 import * as discover from "./discover.js";
 import * as riyaz from "./riyaz.js";
+import * as raag from "./raag.js";
 import * as account from "./account.js";
 
 const views = {
   pitch: document.getElementById("view-pitch"),
   discover: document.getElementById("view-discover"),
   riyaz: document.getElementById("view-riyaz"),
+  raag: document.getElementById("view-raag"),
 };
 
 function switchTo(name) {
@@ -19,7 +21,8 @@ function switchTo(name) {
     if (btn.tagName === "BUTTON") btn.classList.toggle("active", btn.dataset.view === name);
   });
   if (name === "discover") discover.ensureLoaded();
-  if (name !== "riyaz") riyaz.suspend(); // free the mic when leaving Riyaz
+  if (name !== "riyaz") riyaz.suspend();
+  if (name !== "raag") raag.suspend();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -41,5 +44,6 @@ discover.init({
   },
 });
 riyaz.init();
+raag.init();
 wireNav();
 switchTo("pitch");
