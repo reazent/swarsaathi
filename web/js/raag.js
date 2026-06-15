@@ -35,12 +35,12 @@ const TEENTAL = {
   ],
 };
 
-// Synthesised tabla hits — good enough for practice; swap for samples later.
-const BOL_PROFILES = {
-  Dha: { freq: 118, noise: 0.75, dur: 0.14, pitchDrop: 70 },
-  Dhin: { freq: 268, noise: 0.48, dur: 0.09, pitchDrop: 110 },
-  Tin: { freq: 468, noise: 0.32, dur: 0.065, pitchDrop: 180 },
-  Ta: { freq: 368, noise: 0.42, dur: 0.075, pitchDrop: 140 },
+// Recorded tabla hits (msarkar / Freesound — see web/audio/tabla/ATTRIBUTION.md)
+const BOL_SAMPLES = {
+  Dha: "/static/audio/tabla/dha.mp3",
+  Dhin: "/static/audio/tabla/dhin.mp3",
+  Tin: "/static/audio/tabla/tin.mp3",
+  Ta: "/static/audio/tabla/ta.mp3",
 };
 
 let saSelect, bpmInput, bpmVal, tanpuraToggle, tablaToggle, playBtn, playLabel;
@@ -55,6 +55,9 @@ let schedulerId = null;
 let nextBeatTime = 0;
 let currentMatra = 0;
 let inited = false;
+let sampleBuffers = {};
+let samplesReady = false;
+let samplesLoading = null;
 
 export function init() {
   if (inited) return;
@@ -87,6 +90,8 @@ export function init() {
     if (playing) stop();
     else start();
   });
+
+  loadSamples().catch(() => {});
 }
 
 export function suspend() {
@@ -147,14 +152,41 @@ function ensureContext() {
   if (audioCtx.state === "suspended") audioCtx.resume();
   if (!tablaGain) {
     tablaGain = audioCtx.createGain();
-    tablaGain.gain.value = 0.85;
+    tablaGain.gain.value = 0.92;
     tablaGain.connect(audioCtx.destination);
   }
   return audioCtx;
 }
 
-function start() {
+async function loadSamples() {
+  if (samplesReady) return;
+  if (samplesLoading) return samplesLoading;
+  samplesLoading = (async () => {
+    ensureContext();
+    await Promise.all(
+      Object.entries(BOL_SAMPLES).map(async ([bol, url]) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Failed to load ${bol}`);
+        sampleBuffers[bol] = await audioCtx.decodeAudioData(await res.arrayBuffer());
+      }),
+    );
+    samplesReady = true;
+  })();
+  return samplesLoading;
+}
+
+async function start() {
   ensureContext();
+  if (!samplesReady) {
+    if (statusEl) statusEl.textContent = "Loading tabla samples…";
+    try {
+      await loadSamples();
+    } catch (err) {
+      console.error(err);
+      if (statusEl) statusEl.textContent = "Couldn't load tabla samples — refresh and try again.";
+      return;
+    }
+  }
   playing = true;
   playBtn.classList.add("on");
   playLabel.textContent = "Stop";
@@ -263,41 +295,12 @@ function scheduleBeats() {
 }
 
 function playBol(bol, time) {
-  const profile = BOL_PROFILES[bol];
-  if (!profile || !audioCtx) return;
-  const ctx = audioCtx;
-  const { freq, noise, dur, pitchDrop } = profile;
-
-  const osc = ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(freq, time);
-  osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq - pitchDrop), time + dur);
-
-  const oscG = ctx.createGain();
-  oscG.gain.setValueAtTime(0.0001, time);
-  oscG.gain.exponentialRampToValueAtTime(0.55, time + 0.004);
-  oscG.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-
-  const nbuf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
-  const nd = nbuf.getChannelData(0);
-  for (let i = 0; i < nd.length; i += 1) nd[i] = Math.random() * 2 - 1;
-  const noiseSrc = ctx.createBufferSource();
-  noiseSrc.buffer = nbuf;
-  const nG = ctx.createGain();
-  nG.gain.setValueAtTime(0.0001, time);
-  nG.gain.exponentialRampToValueAtTime(noise * 0.35, time + 0.003);
-  nG.gain.exponentialRampToValueAtTime(0.0001, time + dur * 0.85);
-
-  const hp = ctx.createBiquadFilter();
-  hp.type = "highpass";
-  hp.frequency.value = 80;
-
-  osc.connect(oscG).connect(hp).connect(tablaGain);
-  noiseSrc.connect(nG).connect(hp);
-  osc.start(time);
-  osc.stop(time + dur + 0.02);
-  noiseSrc.start(time);
-  noiseSrc.stop(time + dur);
+  const buf = sampleBuffers[bol];
+  if (!buf || !audioCtx || !tablaGain) return;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.connect(tablaGain);
+  src.start(time);
 }
 
 function highlightMatra(idx) {

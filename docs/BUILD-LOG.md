@@ -12,7 +12,7 @@ No scrolling through chat needed.
 - **Teental** bols: `Dha Dhin Dhin Dha | Dha Dhin Dhin Dha | Dha Tin Tin Ta | Ta Dhin Dhin Dha`
 - **Sam markers:** X (Sam), 2, **0 (Khali)**, 3 — legend + labels on matra cells; vibhag dividers.
 - **Matra grid** highlights current beat in sync with tabla; loops until Stop.
-- **Tanpura:** 4-string drone; **tabla:** synthesised bol hits (real samples later).
+- **Tanpura:** 4-string drone; **tabla:** recorded bol samples (msarkar / Freesound HQ previews).
 - Entitlements: `raag_core` free; more taals Pro later.
 
 ---
