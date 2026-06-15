@@ -5,6 +5,12 @@ No scrolling through chat needed.
 
 ---
 
+## 2026-06-15 — Tanpura removed from Raag (quality bar)
+
+Removed synthesized + looped tanpura — neither matched iTablaPro/iShala. Raag is **tabla + matras only** until per-string studio engine ships. See `docs/RAAG-TANPURA.md`. UI keeps **Reference pitch (Sa)** to align with external tanpura apps.
+
+---
+
 ## 2026-06-15 — Raag v1.1: recorded tanpura, volume mix, Dadra (Pro)
 
 ### What I built
