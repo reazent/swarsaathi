@@ -17,45 +17,53 @@ each, and where it goes in `.env`. Do the **Now** block first; the rest can wait
   ```bash
   gh auth refresh -h github.com    # or: gh auth login
   ```
-- Then tell me and I'll create `shruti` (private) and push.
+- Done: repo pushed to https://github.com/reazent/shruti (public for now; flip to
+  private at launch with `gh repo edit --visibility private`).
 
 ### 2. Cloudflare (CDN + R2 object storage)
-- Sign up → enable **R2** (needs a card on file; free tier: 10 GB storage, no egress).
+- Sign up: https://dash.cloudflare.com/sign-up
+- Enable **R2** (needs a card on file; free tier: 10 GB storage, no egress).
 - Create a bucket: `shruti-audio`. Create an **R2 API token** (Account → R2 → Manage API Tokens).
 - Grab: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET=shruti-audio`.
 
 ### 3. Neon (serverless Postgres)  — or Supabase if you want Auth too later
-- Sign up → create project `shruti` → copy the **connection string**.
+- Sign up: https://console.neon.tech/signup
+- Create project `shruti` → copy the **connection string**.
 - Grab: `DATABASE_URL=postgresql://...` (use the *pooled* connection string).
 
 ### 4. Upstash (serverless Redis)
-- Sign up → create a Redis database (pick a region near your API).
+- Sign up: https://console.upstash.com
+- Create a Redis database (pick a region near your API).
 - Grab: `REDIS_URL=rediss://...` (the TLS URL).
 
 ### 5. API hosting — Fly.io (simplest) or Google Cloud Run (if using credits)
-- Fly: `brew install flyctl && fly auth signup`, later `fly launch` (we have a Dockerfile).
-- Cloud Run: create a GCP project; we deploy the container later.
+- Fly: https://fly.io/app/sign-up — `brew install flyctl && fly auth signup`, later `fly launch` (we have a Dockerfile).
+- Cloud Run: https://console.cloud.google.com — create a GCP project; we deploy the container later.
 - Nothing to put in `.env` yet — this *hosts* the app.
 
 ### 6. Sentry (errors) + PostHog (analytics)
-- Sentry → create a project (Python) → grab `SENTRY_DSN`.
-- PostHog → create a project → grab `POSTHOG_KEY` (+ host).
+- Sentry: https://sentry.io/signup → create a project (Python) → grab `SENTRY_DSN`.
+- PostHog: https://us.posthog.com/signup → create a project → grab `POSTHOG_KEY` (+ host).
 
 ---
 
 ## WHEN YOU START CHARGING
 
 ### 7. Auth — Supabase Auth or Clerk
+- Supabase: https://supabase.com/dashboard/sign-up  · Clerk: https://dashboard.clerk.com/sign-up
 - Grab the project URL + anon/public key + a server key.
 
 ### 8. RevenueCat (subscriptions across iOS/Android/web)
+- Sign up: https://app.revenuecat.com/signup
 - Create an app; you'll add App Store / Play products later.
 - Grab the public SDK keys + a server secret for the entitlement webhook.
 
 ### 9. Stripe (web payments, fed into RevenueCat)
+- Sign up: https://dashboard.stripe.com/register
 - Grab `STRIPE_SECRET_KEY` + webhook signing secret.
 
 ### 10. Email — Resend or Postmark
+- Resend: https://resend.com/signup  · Postmark: https://account.postmarkapp.com/sign_up
 - Verify a sending domain; grab the API key.
 
 ---
@@ -63,6 +71,7 @@ each, and where it goes in `.env`. Do the **Now** block first; the rest can wait
 ## WHEN VOCAL SEPARATION / TRAINING TURNS ON
 
 ### 11. Modal or Replicate (serverless GPU)
+- Modal: https://modal.com/signup  · Replicate: https://replicate.com (sign in with GitHub)
 - Grab the API token. Used for Demucs/Sa-classifier jobs — pay per second.
 
 ---
