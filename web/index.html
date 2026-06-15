@@ -249,12 +249,24 @@
 
         <section class="panel raag-controls">
           <div class="raag-control">
+            <label for="g-taal">Taal</label>
+            <select id="g-taal"></select>
+          </div>
+          <div class="raag-control">
             <label for="g-sa">Pitch (Sa)</label>
             <select id="g-sa"></select>
           </div>
           <div class="raag-control raag-bpm">
             <label for="g-bpm">Tabla tempo <span id="g-bpm-val" class="bpm-readout">60</span> BPM</label>
             <input id="g-bpm" type="range" min="40" max="120" value="60" step="1" aria-valuemin="40" aria-valuemax="120" aria-valuenow="60" />
+          </div>
+          <div class="raag-control raag-vol">
+            <label for="g-tanpura-vol">Tanpura volume</label>
+            <input id="g-tanpura-vol" type="range" min="0" max="100" value="70" step="1" />
+          </div>
+          <div class="raag-control raag-vol">
+            <label for="g-tabla-vol">Tabla volume</label>
+            <input id="g-tabla-vol" type="range" min="0" max="100" value="85" step="1" />
           </div>
           <div class="raag-control raag-toggles">
             <label class="check"><input type="checkbox" id="g-tanpura" checked /> <span>Tanpura</span></label>
@@ -270,13 +282,8 @@
 
         <section class="panel raag-panel">
           <div class="raag-head">
-            <h3 class="raag-taal">Teental · 16 matras</h3>
-            <div class="sam-legend" aria-label="Sam markers">
-              <span class="legend-item taali"><strong>X</strong> Sam</span>
-              <span class="legend-item taali"><strong>2</strong> Taali</span>
-              <span class="legend-item khali"><strong>0</strong> Khali</span>
-              <span class="legend-item taali"><strong>3</strong> Taali</span>
-            </div>
+            <h3 class="raag-taal" id="g-taal-title">Teental · 16 matras</h3>
+            <div class="sam-legend" id="g-taal-legend" aria-label="Sam markers"></div>
           </div>
           <p id="g-status" class="raag-status">Set pitch and tempo, then start — matras loop until you stop.</p>
           <div id="g-matra-grid" class="matra-grid" role="list" aria-label="Teental matras"></div>
@@ -302,6 +309,7 @@
         <li>Analyze <strong>your own recordings</strong></li>
         <li>Transpose &amp; best-Sa-for-your-voice</li>
         <li>Riyaz: session recording, drills &amp; progress tracking</li>
+        <li>Raag: Dadra, Rupak &amp; more taals · recorded tanpura</li>
         <li>Tanpura &amp; shruti-box drones · offline · no ads</li>
       </ul>
       <button type="button" class="modal-cta" data-upgrade-cta>Coming soon</button>

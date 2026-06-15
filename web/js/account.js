@@ -56,6 +56,11 @@ export function can(feature) {
   return !!(me && me.entitlements && me.entitlements[feature]);
 }
 
+export function hasRaagTaal(taalId) {
+  const list = me?.entitlements?.raag_taals || ["teental"];
+  return list.includes(taalId);
+}
+
 export function remaining() {
   return me ? me.fresh_analyses_remaining : null; // null = unlimited
 }

@@ -5,7 +5,15 @@ No scrolling through chat needed.
 
 ---
 
-## 2026-06-15 — Raag Practice (tanpura + Teental tabla + matras)
+## 2026-06-15 — Raag v1.1: recorded tanpura, volume mix, Dadra (Pro)
+
+### What I built
+- **Recorded tanpura** — looped CC0 drone sample (psuess / Freesound), pitch-shifted to selected Sa.
+- **Volume mix** — separate tanpura + tabla sliders (live while playing).
+- **Taal picker** — Teental (free), **Dadra** (Pro-gated via `raag_taals` entitlement); matra grid + legend update per taal.
+- **Na** tabla sample added for Dadra theka: `Dha Dhin Na | Dha Dhin Na` with X / khali·0.
+
+---
 
 ### What I built
 - **Fourth product tab: Raag** — pitch (Sa) selector, BPM slider (40–120), tanpura/tabla toggles, Start/Stop loop.

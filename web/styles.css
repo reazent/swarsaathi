@@ -305,6 +305,8 @@ body {
 }
 .raag-control select:focus { border-color: rgba(155,123,255,0.55); box-shadow: 0 0 0 3px rgba(155,123,255,0.14); }
 .raag-bpm { min-width: 200px; flex: 1 1 200px; }
+.raag-vol { min-width: 140px; flex: 1 1 140px; }
+.raag-vol input[type="range"] { width: 100%; accent-color: var(--teal); margin-top: 0.35rem; }
 .raag-bpm input[type="range"] { width: 100%; accent-color: var(--violet); margin-top: 0.35rem; }
 .bpm-readout { color: var(--amber); font-variant-numeric: tabular-nums; }
 .raag-toggles { flex-direction: row; flex-wrap: wrap; gap: 1rem; align-items: center; padding-bottom: 0.55rem; }

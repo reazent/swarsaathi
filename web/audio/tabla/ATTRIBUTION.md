@@ -8,6 +8,7 @@ Recorded tabla bol strokes by **msarkar** on [Freesound](https://freesound.org/p
 | `dhin.mp3` | [Dhin.aif](https://freesound.org/people/msarkar/sounds/56145/) | Sampling+ |
 | `ta.mp3` | [Ta.aif](https://freesound.org/people/msarkar/sounds/56150/) | Sampling+ |
 | `tin.mp3` | [Tin.aif](https://freesound.org/people/msarkar/sounds/56152/) | Sampling+ |
+| `na.mp3` | [Na.aif](https://freesound.org/people/msarkar/sounds/56148/) | Sampling+ |
 
 Bundled as Freesound HQ previews (MP3). Replace with full-resolution WAV/AIFF when we license
 a studio pack (e.g. Pete Lockett samples or a commercial library).
