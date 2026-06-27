@@ -224,6 +224,22 @@ h3 {
   width: 100%;
 }
 
+.section-cta {
+  width: fit-content;
+  margin: 0.2rem 0 1.2rem;
+}
+
+.card-link {
+  display: inline-flex;
+  margin-top: 0.9rem;
+  color: #d9fffb;
+  font-weight: 800;
+}
+
+.card-link:hover {
+  color: #fff;
+}
+
 .hero-card {
   display: flex;
   justify-content: center;
