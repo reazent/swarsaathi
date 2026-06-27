@@ -240,6 +240,43 @@ h3 {
   color: #fff;
 }
 
+.ios-card-link {
+  margin-left: 0.9rem;
+}
+
+.app-link-pending {
+  opacity: 0.72;
+}
+
+.release-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.2rem 0 1.4rem;
+  padding: 1rem;
+  border: 1px solid rgba(95, 212, 199, 0.22);
+  border-radius: 1.2rem;
+  background: rgba(95, 212, 199, 0.075);
+}
+
+.release-card strong {
+  display: block;
+  margin: 0.1rem 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.release-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.release-card code {
+  color: #d9fffb;
+}
+
 .hero-card {
   display: flex;
   justify-content: center;

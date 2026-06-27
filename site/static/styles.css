@@ -34,6 +34,50 @@ body {
     var(--bg);
 }
 
+.practice-switcher {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(12, 8, 24, 0.86);
+  backdrop-filter: blur(18px);
+}
+
+.practice-switcher a,
+.practice-switcher span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.38rem 0.68rem;
+  border-radius: 999px;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.practice-switcher a {
+  border: 1px solid var(--border-strong);
+  background: rgba(255,255,255,0.045);
+}
+
+.practice-switcher a.active,
+.practice-switcher a:hover {
+  color: #d9fffb;
+  border-color: rgba(95,212,199,0.38);
+  background: rgba(95,212,199,0.12);
+}
+
+.practice-switcher .app-link-pending {
+  opacity: 0.72;
+}
+
 .ambient { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
 .orb { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.5; }
 .orb-a { width: 340px; height: 340px; top: -80px; right: -60px; background: rgba(155, 123, 255, 0.35); }
