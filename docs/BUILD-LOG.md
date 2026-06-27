@@ -38,7 +38,7 @@ Removed synthesized + looped tanpura — neither matched iTablaPro/iShala. Raag 
 - **`app/services/usage.py`** + **`UsageCounter`** model — DB-backed daily quota
   (Redis-swappable via identical signatures).
 - **`app/api/deps.py`** — `get_client_id` (`X-Client-Id` header) + `resolve_tier`
-  (manual `PRO_CLIENT_IDS`; dev `X-Shruti-Tier` override). The Auth/RevenueCat seam.
+  (manual `PRO_CLIENT_IDS`; dev `X-SwarSaathi-Tier` override). The Auth/RevenueCat seam.
 - **`GET /api/v1/me`** — tier, entitlements, remaining free lookups.
 - **`POST /tracks/{id}/analyze`** — meters **fresh** analyses only; **HTTP 402**
   `{error: quota_exceeded, upgrade: true}` on limit. Cached pitches + `GET /pitch`

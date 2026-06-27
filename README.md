@@ -1,6 +1,6 @@
-# Indian Pitch
+# SwarSaathi
 
-Find the **Sa (home pitch)** of Indian film songs — production-oriented API + classy search UI.
+Indian music learning tools. Current launch focus: **SwarPractice**, a free real-time swara tuner for singers.
 
 ## Local development
 
@@ -12,10 +12,23 @@ pip install -r requirements.txt
 # iTunes .m4a analysis needs ffmpeg — bundled via imageio-ffmpeg (pip install -r requirements.txt).
 # Optional system install: brew install ffmpeg (included in Docker image for production).
 
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8004
 ```
 
-Open http://127.0.0.1:8000
+Open http://127.0.0.1:8004
+
+## SwarPractice mobile build
+
+```bash
+cd web
+npm install
+npm run build:mobile
+npm run cap:sync
+npm run cap:open:ios      # requires Xcode
+npm run cap:open:android  # requires Android Studio
+```
+
+See `docs/DEPLOYMENT-CHECKLIST.md` for app-store, GitHub, and cloud signup steps.
 
 On startup the app imports tracks from **`labels.xlsx`** (rows with audio files present in `audio/`).
 

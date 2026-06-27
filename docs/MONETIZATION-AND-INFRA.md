@@ -45,7 +45,7 @@ unlock). Use **regional/PPP pricing** — critical for the India-first audience.
 - **Identity (pre-auth):** an `X-Client-Id` header the frontend generates and
   stores in `localStorage`. Quota is keyed on it.
 - **Tier resolution** (`app/api/deps.py`): manual Pro allow-list via
-  `PRO_CLIENT_IDS`; in dev, an `X-Shruti-Tier: pro|free` header override for testing.
+  `PRO_CLIENT_IDS`; in dev, an `X-SwarSaathi-Tier: pro|free` header override for testing.
 - **Frontend:** Free/Pro chip + remaining-lookups in the sidebar (top bar on
   mobile); 402 opens an upgrade modal; quota chip refreshes after each analysis.
 

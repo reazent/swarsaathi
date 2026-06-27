@@ -4,11 +4,11 @@ export const $ = (id) => document.getElementById(id);
 
 // Stable per-device id so the backend can meter free-tier usage (pre-auth).
 export function clientId() {
-  let id = localStorage.getItem("shruti_client_id");
+  let id = localStorage.getItem("swarsaathi_client_id") || localStorage.getItem("shruti_client_id");
   if (!id) {
     id = (crypto.randomUUID && crypto.randomUUID()) || `c_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem("shruti_client_id", id);
   }
+  localStorage.setItem("swarsaathi_client_id", id);
   return id;
 }
 
@@ -35,7 +35,7 @@ function hashString(str) {
 }
 
 export function artworkGradient(seed) {
-  const pair = PALETTE[hashString(seed || "shruti") % PALETTE.length];
+  const pair = PALETTE[hashString(seed || "swarsaathi") % PALETTE.length];
   return `linear-gradient(145deg, ${pair[0]}, ${pair[1]})`;
 }
 

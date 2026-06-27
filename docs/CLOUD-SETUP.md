@@ -17,18 +17,17 @@ each, and where it goes in `.env`. Do the **Now** block first; the rest can wait
   ```bash
   gh auth refresh -h github.com    # or: gh auth login
   ```
-- Done: repo pushed to https://github.com/reazent/shruti (public for now; flip to
-  private at launch with `gh repo edit --visibility private`).
+- Target repo: `swarsaathi` (private before launch; public only if you intentionally open-source it).
 
 ### 2. Cloudflare (CDN + R2 object storage)
 - Sign up: https://dash.cloudflare.com/sign-up
 - Enable **R2** (needs a card on file; free tier: 10 GB storage, no egress).
-- Create a bucket: `shruti-audio`. Create an **R2 API token** (Account → R2 → Manage API Tokens).
-- Grab: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET=shruti-audio`.
+- Create a bucket: `swarsaathi-audio`. Create an **R2 API token** (Account → R2 → Manage API Tokens).
+- Grab: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET=swarsaathi-audio`.
 
 ### 3. Neon (serverless Postgres)  — or Supabase if you want Auth too later
 - Sign up: https://console.neon.tech/signup
-- Create project `shruti` → copy the **connection string**.
+- Create project `swarsaathi` → copy the **connection string**.
 - Grab: `DATABASE_URL=postgresql://...` (use the *pooled* connection string).
 
 ### 4. Upstash (serverless Redis)

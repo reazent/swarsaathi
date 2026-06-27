@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SwarPractice — mobile preview · SwarSaathi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/milap-preview.css" />
+</head>
+<body class="preview-body">
+  <div class="preview-banner" role="status">
+    <strong>SwarPractice</strong> preview — use
+    <a href="/static/milap-preview.html" style="color:#b89bff">/static/milap-preview.html</a>
+    on your dev server.
+  </div>
+
+  <div class="phone-shell">
+    <div class="phone-notch" aria-hidden="true"></div>
+    <main class="milap-app" id="milap-app">
+      <header class="milap-header">
+        <span class="milap-brand">SwarSaathi</span>
+        <span class="milap-product">SwarPractice</span>
+        <button type="button" class="milap-settings-btn" id="m-settings" aria-label="Settings">⚙</button>
+      </header>
+
+      <!-- Top: Sa + target -->
+      <section class="milap-top-controls panel">
+        <div class="control-row">
+          <div class="control-field">
+            <label for="m-sa">Your Pitch</label>
+            <select id="m-sa"></select>
+          </div>
+          <div class="control-field target-field">
+            <label id="m-target-label-top">Target note</label>
+            <button type="button" class="target-trigger" id="m-target-trigger" aria-haspopup="dialog" aria-expanded="false">
+              <span id="m-target-label">Any (free practice)</span>
+            </button>
+            <div class="target-sheet" id="m-target-sheet" hidden role="dialog" aria-label="Choose target note">
+              <button type="button" class="target-any" data-target="any">Any (free practice)</button>
+              <div class="target-grid-head">
+                <span class="target-row-label"></span>
+                <span>Mandra</span>
+                <span>Madhya</span>
+                <span>Taar</span>
+              </div>
+              <div class="target-grid" id="m-target-grid"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live readout -->
+      <section class="milap-readout panel">
+        <p class="milap-hint" id="m-hint">Tap Start to run a demo session with the selected target.</p>
+        <div class="readout-stage" id="m-stage">
+          <div class="swara-display">
+            <div class="swara-stack" id="m-swara-stack" aria-label="Detected swara">
+              <div class="saptak-dots above" id="m-dots-above" aria-hidden="true"></div>
+              <div class="swara-name swara-mark shuddha" id="m-letter">Ga</div>
+              <div class="saptak-dots below" id="m-dots-below" aria-hidden="true"></div>
+            </div>
+            <div class="swara-fullname" id="m-fullname">komal Ga</div>
+            <div class="swara-meta" id="m-meta">D#3 · 155.6 Hz</div>
+            <p class="saptak-legend">• below = mandra saptak · • above = taar saptak</p>
+          </div>
+
+          <div class="wave-wrap">
+            <canvas id="m-wave" width="320" height="120" aria-label="Pitch deviation wave"></canvas>
+            <div class="wave-labels"><span>−50¢</span><span>0</span><span>+50¢</span></div>
+            <div class="wave-legend">
+              <span class="wave-legend-item ref"><i aria-hidden="true"></i> Ideal (stable &amp; accurate)</span>
+              <span class="wave-legend-item act"><i aria-hidden="true"></i> Your pitch</span>
+            </div>
+          </div>
+
+          <div class="session-live" id="m-live">
+            <div class="session-chips" id="m-duration">
+              <span class="chip-label">Session</span>
+              <button type="button" class="chip active" data-sec="5">5s</button>
+              <button type="button" class="chip" data-sec="10">10s</button>
+              <button type="button" class="chip" data-sec="20">20s</button>
+              <button type="button" class="chip" data-sec="30">30s</button>
+            </div>
+            <div class="live-bar-wrap">
+              <div class="live-bar" id="m-live-bar"></div>
+            </div>
+            <p class="live-stat" id="m-live-stat">Ready · 5 second drill</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Session summary (shown after drill) -->
+      <section class="milap-summary panel" id="m-summary" hidden>
+        <h2 class="summary-title" id="m-summary-title">Session complete · 5s</h2>
+        <p class="summary-target" id="m-summary-target"></p>
+
+        <div class="score-duo">
+          <div class="score-card acc">
+            <span class="score-label">Accuracy</span>
+            <span class="score-value" id="m-acc">—</span>
+            <svg class="score-ring" viewBox="0 0 36 36" aria-hidden="true">
+              <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path class="ring-fill acc-fill" id="m-acc-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            </svg>
+          </div>
+          <div class="score-card stb">
+            <span class="score-label">Stability</span>
+            <span class="score-value" id="m-stb">—</span>
+            <svg class="score-ring" viewBox="0 0 36 36" aria-hidden="true">
+              <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path class="ring-fill stb-fill" id="m-stb-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            </svg>
+          </div>
+        </div>
+
+        <p class="milap-score-line">SwarPractice score: <strong id="m-composite">—</strong></p>
+
+        <div class="summary-wave-wrap">
+          <canvas id="m-summary-wave" width="320" height="72" aria-label="Session trace"></canvas>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-block">
+            <span class="block-label">Cents spread</span>
+            <div class="histogram" id="m-hist" aria-hidden="true"></div>
+          </div>
+          <div class="summary-block">
+            <span class="block-label">Pitch bias</span>
+            <div class="bias-bar" id="m-bias">
+              <span class="bias-l">♭ flat</span>
+              <div class="bias-track"><span class="bias-needle" id="m-bias-needle"></span></div>
+              <span class="bias-r">sharp ♯</span>
+            </div>
+            <p class="block-detail" id="m-avg-cents">Avg +5¢ · σ 9¢</p>
+          </div>
+        </div>
+
+        <ul class="summary-stats" id="m-stats"></ul>
+        <p class="summary-tip" id="m-tip"></p>
+
+        <div class="summary-actions">
+          <button type="button" class="btn-secondary" id="m-again">Practice again</button>
+          <button type="button" class="btn-ghost" id="m-longer">Try 10s</button>
+        </div>
+      </section>
+
+      <!-- Bottom controls -->
+      <section class="milap-bottom panel">
+        <div class="compact-controls">
+          <div class="control-field compact">
+            <label for="m-strict">Strictness</label>
+            <select id="m-strict">
+              <option value="beginner">Beginner ±35¢</option>
+              <option value="intermediate" selected>Intermediate ±20¢</option>
+              <option value="expert">Expert ±10¢</option>
+            </select>
+          </div>
+          <div class="control-field compact">
+            <label for="m-sensitivity">Sensitivity</label>
+            <input type="range" id="m-sensitivity" min="1" max="5" value="3" />
+          </div>
+        </div>
+        <button type="button" class="mic-btn" id="m-mic">
+          <span class="mic-dot" aria-hidden="true"></span>
+          <span id="m-mic-label">Start listening</span>
+        </button>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="settings-sheet" id="m-settings-dialog">
+    <form method="dialog">
+      <h3>Settings</h3>
+      <label class="check"><input type="checkbox" id="m-drone" /> Tanpura (headphones)</label>
+      <p class="sheet-note">Production app uses real mic + pitch engine. This page is layout preview only.</p>
+      <button type="submit" class="btn-secondary">Done</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="/static/js/milap-preview.js"></script>
+</body>
+</html>

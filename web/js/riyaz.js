@@ -540,13 +540,14 @@ function autoCorrelate(b, sampleRate) {
   let d = minLag;
   while (d < maxLag && c[d] > c[d + 1]) d += 1;
 
-  // Pick the strongest peak in the singing range; prefer lower lag (fundamental)
+  // Pick the strongest peak in the singing range; prefer longer lag (fundamental)
   // when two peaks are close in strength — stops octave-hopping on phone speakers.
   let bestLag = -1;
   let bestVal = -1;
+  const lagSpan = Math.max(1, maxLag - minLag);
   for (let i = d; i <= maxLag; i += 1) {
     if (c[i] <= 0) continue;
-    const score = c[i] * (1 + 0.08 * (maxLag - i) / maxLag);
+    const score = c[i] * (1 + 0.1 * (i - minLag) / lagSpan);
     if (score > bestVal) {
       bestVal = score;
       bestLag = i;
@@ -556,7 +557,7 @@ function autoCorrelate(b, sampleRate) {
 
   // Prefer the fundamental when harmonics are equally strong (phone speaker → mic).
   let fundLag = bestLag;
-  while (fundLag * 2 <= maxLag && c[fundLag * 2] >= c[fundLag] * 0.88) {
+  while (fundLag * 2 <= maxLag && c[fundLag * 2] >= c[fundLag] * 0.72) {
     fundLag *= 2;
   }
   bestLag = fundLag;

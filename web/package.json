@@ -1,0 +1,21 @@
+{
+  "name": "swarsaathi-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:mobile": "node scripts/build-mobile.mjs",
+    "cap:sync": "npm run build:mobile && cap sync",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android",
+    "test:pitch": "node js/pitch/pitch-math.test.js",
+    "vendor:essentia": "mkdir -p pitch/vendor && cp node_modules/essentia.js/dist/essentia-wasm.umd.js node_modules/essentia.js/dist/essentia-wasm.web.wasm node_modules/essentia.js/dist/essentia.js-core.umd.min.js pitch/vendor/"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
+    "essentia.js": "^0.1.3"
+  }
+}

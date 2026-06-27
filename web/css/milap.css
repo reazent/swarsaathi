@@ -1,0 +1,465 @@
+/* SwarPractice — swara tuner (mobile-first) */
+
+.milap-view {
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.milap-view .view-head {
+  text-align: center;
+  padding-top: 0.25rem;
+}
+.milap-view .milap-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.milap-view .view-title {
+  font-size: clamp(2.2rem, 9vw, 3.2rem);
+  letter-spacing: -0.035em;
+}
+.milap-view .milap-settings-btn {
+  padding: 0.42rem 0.68rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.055);
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+.milap-view .milap-settings-btn:hover {
+  background: rgba(95,212,199,0.12);
+  border-color: rgba(95,212,199,0.28);
+  color: #dffffb;
+}
+.milap-view .milap-settings-btn:focus-visible {
+  outline: 2px solid rgba(95,212,199,0.65);
+  outline-offset: 2px;
+}
+.milap-view .view-sub {
+  max-width: 25rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.milap-view .panel {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.095), rgba(255,255,255,0.025)),
+    rgba(18, 12, 32, 0.72);
+  border: 1px solid rgba(255,255,255,0.105);
+  box-shadow: 0 18px 52px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(18px);
+}
+
+.milap-view .milap-top-controls {
+  padding: 1rem 1.1rem;
+  position: relative;
+  z-index: 40;
+  overflow: visible;
+}
+.milap-view .milap-session-setup {
+  padding: 0.65rem 1rem;
+  position: relative;
+  z-index: 5;
+}
+.milap-view .milap-readout {
+  padding: 0.9rem 1rem 1rem;
+  margin-top: 0;
+  position: relative;
+  z-index: 1;
+}
+.milap-view .control-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+.milap-view .control-field { display: flex; flex-direction: column; gap: 0.35rem; position: relative; }
+.milap-view .control-field > label {
+  font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 600;
+}
+.milap-view .control-field select {
+  width: 100%; padding: 0.65rem 1.95rem 0.65rem 0.75rem; font: inherit; font-size: 0.88rem;
+  color: var(--text); background-color: rgba(7, 5, 16, 0.5); border: 1px solid rgba(255,255,255,0.105);
+  border-radius: 14px; appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%238b7fa0' stroke-width='1.6'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.7rem center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.milap-view .control-field select:focus-visible,
+.milap-view .target-trigger:focus-visible,
+.milap-view .chip:focus-visible,
+.milap-view .milap-mic-btn:focus-visible {
+  outline: 2px solid rgba(95,212,199,0.65);
+  outline-offset: 2px;
+}
+
+.milap-view .target-trigger {
+  width: 100%; text-align: left; padding: 0.65rem 1.95rem 0.65rem 0.75rem;
+  font: inherit; font-size: 0.88rem; color: var(--text);
+  background-color: rgba(7, 5, 16, 0.5); border: 1px solid rgba(255,255,255,0.105); border-radius: 14px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%238b7fa0' stroke-width='1.6'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.7rem center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.milap-view .target-trigger[aria-expanded="true"] { border-color: rgba(155,123,255,0.55); }
+
+.milap-view .target-sheet {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 200;
+  padding: 0.65rem; background: rgba(16, 10, 30, 0.96); border: 1px solid rgba(155,123,255,0.35);
+  border-radius: 18px; box-shadow: 0 18px 48px rgba(0,0,0,0.52);
+  max-height: min(62vh, 420px); overflow-y: auto;
+  backdrop-filter: blur(18px);
+}
+.milap-view .target-field { z-index: 50; }
+.milap-view .target-any {
+  width: 100%; font: inherit; font-size: 0.82rem; font-weight: 600; text-align: left;
+  padding: 0.5rem 0.65rem; margin-bottom: 0.45rem; border-radius: 10px;
+  border: 1px solid rgba(95,212,199,0.35); background: rgba(95,212,199,0.1); color: var(--teal);
+  cursor: pointer;
+}
+.milap-view .target-grid-head, .milap-view .target-grid-row {
+  display: grid; grid-template-columns: 3.2rem 1fr 1fr 1fr; gap: 4px; align-items: center;
+}
+.milap-view .target-grid-head {
+  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); padding: 0 0 0.35rem; border-bottom: 1px solid var(--border);
+  margin-bottom: 0.35rem;
+}
+.milap-view .target-row-label { font-size: 0.68rem; font-weight: 600; color: var(--text-soft); line-height: 1.15; }
+.milap-view .target-cell {
+  font: inherit; font-size: 0.72rem; font-weight: 600; padding: 0.4rem 0.2rem;
+  border-radius: 8px; border: 1px solid transparent; background: rgba(255,255,255,0.04);
+  color: var(--text-soft); cursor: pointer; min-height: 2rem;
+  transition: transform 0.14s, background 0.14s, border-color 0.14s;
+}
+.milap-view .target-cell:hover { transform: translateY(-1px); background: rgba(255,255,255,0.075); }
+.milap-view .target-cell.active {
+  background: linear-gradient(135deg, rgba(95,212,199,0.22), rgba(155,123,255,0.26));
+  border-color: rgba(95,212,199,0.42);
+  color: #fff;
+}
+
+.milap-view .milap-hint { margin: 0 0 0.75rem; text-align: center; font-size: 0.82rem; color: var(--text-soft); }
+.milap-view .milap-session-setup .live-stat { margin: 0.5rem 0 0; text-align: center; font-size: 0.78rem; color: var(--text-muted); }
+
+.milap-view .swara-stack {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 4.6rem; margin-bottom: 0.1rem;
+  padding: 0.2rem 0 0.1rem;
+}
+.milap-view .saptak-label {
+  min-height: 1rem; margin-bottom: 0.15rem;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+.milap-view .saptak-label:empty { min-height: 0; height: 0; margin: 0; overflow: hidden; }
+.milap-view .milap-swara-name {
+  font-family: var(--font-display); font-size: clamp(3.5rem, 14vw, 5.25rem);
+  line-height: 0.95; transition: color 0.15s;
+  text-shadow: 0 16px 42px color-mix(in srgb, currentColor 32%, transparent);
+}
+.milap-view .swara-token {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  padding: 0.24em 0.08em 0.2em;
+  line-height: 1;
+}
+.milap-view .swara-token.saptak-taar::before,
+.milap-view .swara-token.saptak-mandra::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 0.12em;
+  height: 0.12em;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateX(-50%);
+  box-shadow: 0 0 0.18em color-mix(in srgb, currentColor 45%, transparent);
+}
+.milap-view .swara-token.saptak-taar::before { top: 0.02em; }
+.milap-view .swara-token.saptak-mandra::after { bottom: 0.02em; }
+.milap-view .swara-mark { position: relative; display: inline-block; padding: 0 0.06em; }
+.milap-view .swara-mark.komal::after {
+  content: ""; position: absolute; left: 8%; right: 8%; bottom: -0.03em;
+  height: max(2px, 0.045em); background: currentColor; border-radius: 1px;
+}
+.milap-view .swara-mark.tivra::before {
+  content: ""; position: absolute; left: 50%; transform: translateX(-50%); top: -0.14em;
+  width: max(2px, 0.045em); height: 0.28em; background: currentColor; border-radius: 1px;
+}
+.milap-view .target-cell .swara-token {
+  padding: 0.42em 0.08em;
+}
+.milap-view .swara-fullname { margin-top: 0.35rem; font-size: 0.95rem; font-weight: 600; color: var(--text-soft); }
+.milap-view .swara-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.8rem;
+  margin-top: 0.35rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: rgba(247,243,255,0.72);
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.075);
+  font-variant-numeric: tabular-nums;
+}
+.milap-view .saptak-legend { margin: 0.35rem 0 0; font-size: 0.65rem; color: var(--text-muted); }
+
+.milap-view .wave-wrap {
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(95,212,199,0.055), rgba(155,123,255,0.035)),
+    rgba(5,4,12,0.32);
+  border: 1px solid rgba(255,255,255,0.09);
+  overflow: hidden;
+  margin-top: 0.65rem;
+}
+.milap-view .wave-wrap canvas { display: block; width: 100%; height: 96px; }
+.milap-view .summary-wave-wrap canvas { display: block; width: 100%; height: 56px; }
+.milap-view .wave-labels {
+  display: flex; justify-content: space-between; padding: 0.18rem 0.5rem 0.1rem;
+  font-size: 0.65rem; color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+.milap-view .wave-legend {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 0.65rem; padding: 0 0.5rem 0.35rem;
+  font-size: 0.62rem; color: var(--text-muted);
+}
+.milap-view .wave-legend-item { display: inline-flex; align-items: center; gap: 0.35rem; }
+.milap-view .wave-legend-item i { display: inline-block; width: 1.1rem; height: 0; border-top: 2px solid; }
+.milap-view .wave-legend-item.steady i { border-color: rgba(95,212,199,0.45); border-top-width: 4px; }
+.milap-view .wave-legend-item.ref i { border-top-style: dashed; border-color: rgba(95,212,199,0.75); }
+.milap-view .wave-legend-item.act i { border-color: var(--teal); }
+
+.milap-view .session-chips { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 0.4rem; }
+.milap-view .chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.milap-view .chip-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.25rem; }
+.milap-view .chip {
+  font: inherit; font-size: 0.78rem; font-weight: 700; padding: 0.42rem 0.72rem;
+  border-radius: 999px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.045);
+  color: var(--text-soft); cursor: pointer;
+  transition: transform 0.14s, background 0.14s, border-color 0.14s, color 0.14s;
+}
+.milap-view .chip:hover:not(:disabled) { transform: translateY(-1px); background: rgba(255,255,255,0.075); }
+.milap-view .chip.active { background: rgba(95,212,199,0.18); border-color: rgba(95,212,199,0.45); color: #bffff7; }
+.milap-view .live-bar-wrap { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); margin-top: 0.55rem; overflow: hidden; }
+.milap-view .live-bar-wrap.is-continuous { opacity: 0.35; }
+.milap-view .live-bar-wrap.is-continuous .live-bar { width: 100% !important; animation: milapLivePulse 2.4s ease-in-out infinite; }
+@keyframes milapLivePulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.9; } }
+.milap-view .live-bar { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, var(--teal), var(--violet)); transition: width 0.08s linear; }
+.milap-view .live-stat { margin: 0.45rem 0 0; text-align: center; font-size: 0.78rem; color: var(--text-muted); }
+
+.milap-view .milap-summary { margin-top: 0.65rem; animation: milapFadeUp 0.35s ease; }
+@keyframes milapFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.milap-view .summary-title { margin: 0; font-size: 1rem; font-weight: 600; }
+.milap-view .summary-target { margin: 0.25rem 0 0.85rem; font-size: 0.82rem; color: var(--text-muted); }
+.milap-view .score-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-bottom: 0.5rem; align-items: stretch; }
+.milap-view .score-card { position: relative; min-height: 5.4rem; padding: 0.75rem 3rem 0.75rem 0.75rem; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); text-align: left; display: flex; flex-direction: column; justify-content: center; }
+.milap-view .score-card.acc { border-color: rgba(95,212,199,0.25); }
+.milap-view .score-card.stb { border-color: rgba(184,155,255,0.25); }
+.milap-view .score-label { display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.milap-view .score-value { display: block; font-size: 1.65rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 0.15rem; }
+.milap-view .score-card.acc .score-value { color: #5fd4c7; }
+.milap-view .score-card.stb .score-value { color: #b89bff; }
+.milap-view .score-ring { position: absolute; right: 6px; top: 6px; width: 42px; height: 42px; }
+.milap-view .ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 3; }
+.milap-view .ring-fill { fill: none; stroke-width: 3; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.milap-view .acc-fill { stroke: #5fd4c7; }
+.milap-view .stb-fill { stroke: #b89bff; }
+.milap-view .milap-score-line { margin: 0 0 0.75rem; font-size: 0.88rem; color: var(--text-soft); text-align: center; }
+.milap-view .summary-wave-wrap { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 0.65rem; background: rgba(0,0,0,0.2); }
+.milap-view .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-bottom: 0.65rem; }
+.milap-view .summary-block { padding: 0.65rem; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); }
+.milap-view .block-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.4rem; }
+.milap-view .histogram { display: flex; align-items: flex-end; gap: 2px; height: 48px; }
+.milap-view .hist-bar { flex: 1; min-width: 0; border-radius: 2px 2px 0 0; background: rgba(95,212,199,0.35); }
+.milap-view .bias-bar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.35rem; font-size: 0.62rem; color: var(--text-muted); }
+.milap-view .bias-track { position: relative; height: 8px; border-radius: 999px; background: linear-gradient(90deg, rgba(155,123,255,0.4), rgba(255,255,255,0.1) 50%, rgba(255,125,110,0.4)); }
+.milap-view .bias-needle { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); }
+.milap-view .block-detail { margin: 0.35rem 0 0; font-size: 0.75rem; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+.milap-view .summary-stats { margin: 0 0 0.65rem; padding: 0; list-style: none; font-size: 0.8rem; color: var(--text-soft); }
+.milap-view .summary-stats li { padding: 0.25rem 0; border-top: 1px solid var(--border); }
+.milap-view .summary-tip { margin: 0 0 0.75rem; padding: 0.65rem; border-radius: 10px; background: rgba(155,123,255,0.1); border: 1px solid rgba(155,123,255,0.2); font-size: 0.8rem; color: var(--text-soft); line-height: 1.45; }
+
+.milap-view .accompaniment-controls {
+  margin-bottom: 0;
+  padding: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.035);
+}
+.milap-view .accomp-head { display: flex; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.6rem; }
+.milap-view .accomp-head p { margin: 0.18rem 0 0; font-size: 0.72rem; color: var(--text-muted); line-height: 1.35; }
+.milap-view .accomp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; align-items: end; }
+.milap-view .accomp-check { min-height: 2.7rem; padding: 0.55rem 0.65rem; border-radius: 12px; background: rgba(7,5,16,0.36); border: 1px solid rgba(255,255,255,0.08); }
+.milap-view .accomp-check.disabled { opacity: 0.5; }
+.milap-view .bpm-field { grid-column: span 1; }
+.milap-view .summary-actions { display: flex; gap: 0.5rem; }
+.milap-view .btn-secondary, .milap-view .btn-ghost {
+  flex: 1; font: inherit; font-size: 0.88rem; font-weight: 600; padding: 0.65rem; border-radius: 12px; cursor: pointer;
+}
+.milap-view .btn-secondary { color: #fff; background: rgba(155,123,255,0.35); border: 1px solid rgba(155,123,255,0.5); }
+.milap-view .btn-ghost { color: var(--text-soft); background: transparent; border: 1px solid var(--border); }
+
+.milap-view .milap-bottom {
+  padding: 0.8rem 1rem;
+  margin-top: 0.55rem;
+  margin-bottom: 0.55rem;
+  position: relative;
+  z-index: 2;
+}
+.milap-view .compact-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-bottom: 0.75rem; }
+.milap-view .milap-panel-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; margin-bottom: 0.75rem; }
+.milap-view .milap-panel-tabs .chip { width: 100%; justify-content: center; }
+.milap-view .milap-control-panel[hidden] { display: none !important; }
+.milap-view .compact input[type="range"] { width: 100%; accent-color: var(--violet); margin-top: 0.35rem; }
+
+
+.milap-view.accomp-mode .target-field {
+  display: none !important;
+}
+.milap-view.accomp-mode .control-row {
+  grid-template-columns: 1fr;
+}
+.milap-view.accomp-mode .milap-top-controls {
+  border-color: rgba(95,212,199,0.18);
+}
+
+.milap-view.accomp-mode .milap-session-setup,
+.milap-view.accomp-mode .milap-readout,
+.milap-view.accomp-mode .milap-summary {
+  display: none !important;
+}
+.milap-view.accomp-mode .milap-status {
+  margin: 0.35rem 0 0.65rem;
+}
+.milap-view.accomp-mode .milap-bottom {
+  border-color: rgba(95,212,199,0.2);
+  box-shadow: 0 14px 44px rgba(95,212,199,0.08), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.milap-view .milap-mic-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.55rem; width: 100%;
+  min-height: 3.3rem;
+  border-radius: 18px;
+  box-shadow: 0 18px 38px rgba(95,212,199,0.18);
+}
+.milap-view .milap-mic-btn.running {
+  background: linear-gradient(135deg, #ff6b6b, #ff9a6b) !important;
+  box-shadow: 0 18px 38px rgba(255,107,107,0.24);
+}
+
+.milap-settings-sheet {
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 22px; padding: 1.25rem;
+  background: rgba(18, 12, 32, 0.96); color: var(--text); max-width: 340px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.5);
+}
+.milap-settings-sheet h3 { margin: 0 0 1rem; }
+.milap-settings-sheet .check { display: flex; align-items: flex-start; gap: 0.55rem; font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--text-soft); }
+.milap-settings-sheet::backdrop { background: rgba(5, 3, 10, 0.58); backdrop-filter: blur(6px); }
+
+body.launch-milap .nav-item:not([data-view="milap"]),
+body.launch-milap .mobile-tabs { display: none !important; }
+body.launch-milap .sidebar-foot .account { display: none; }
+
+@media (min-width: 900px) {
+  .milap-view { max-width: 460px; padding-top: 0.5rem; }
+}
+
+@media (max-width: 560px) {
+  .milap-view .control-row,
+  .milap-view .compact-controls,
+  .milap-view .accomp-grid {
+    grid-template-columns: 1fr;
+  }
+  .milap-view .score-card { padding-right: 2.8rem; }
+}
+
+/* v1.1 premium mode controls */
+.milap-view .accomp-mini-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.55rem 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(95,212,199,0.22);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(95,212,199,0.18), transparent 42%),
+    rgba(5,4,12,0.45);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.18);
+}
+.milap-view .accomp-mini-bar[hidden] { display: none !important; }
+.milap-view .mini-kicker {
+  display: block;
+  margin-bottom: 0.12rem;
+  color: var(--teal);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.milap-view .accomp-mini-bar strong {
+  display: block;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+.milap-view .mini-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.milap-view .mini-actions button {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-soft);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.055);
+  padding: 0.42rem 0.6rem;
+}
+.milap-view .mini-actions button:last-child {
+  color: #ffe1df;
+  border-color: rgba(255,125,110,0.3);
+  background: rgba(255,125,110,0.1);
+}
+.milap-view .milap-panel-tabs {
+  padding: 0.22rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(7,5,16,0.42);
+}
+.milap-view .milap-panel-tabs .chip {
+  border: 0;
+  background: transparent;
+  min-height: 2.45rem;
+}
+.milap-view .milap-panel-tabs .chip.active {
+  background: linear-gradient(135deg, rgba(95,212,199,0.24), rgba(155,123,255,0.22));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 24px rgba(95,212,199,0.12);
+}
+.milap-view .control-field select option:disabled {
+  color: rgba(180,170,200,0.5);
+}
+
+@media (max-width: 420px) {
+  .milap-view .accomp-mini-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .milap-view .mini-actions {
+    width: 100%;
+  }
+  .milap-view .mini-actions button {
+    flex: 1;
+  }
+}

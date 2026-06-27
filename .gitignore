@@ -42,3 +42,10 @@ build/
 .idea/
 *.log
 ~$*.xlsx
+
+# Large app audio assets live in R2/CDN, not git or mobile bundle.
+web/audio/tanpura/
+
+# Local Cloudflare and reference artifacts.
+.wrangler/
+IMG_*.PNG

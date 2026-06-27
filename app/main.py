@@ -26,8 +26,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Shruti",
-    description="Find the pitch of Indian film songs",
+    title="SwarSaathi",
+    description="Indian music learning tools and pitch services",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -39,6 +39,11 @@ app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(WEB_DIR / "index.html")
+
+
+@app.get("/milap-preview")
+def milap_preview() -> FileResponse:
+    return FileResponse(WEB_DIR / "milap-preview.html")
 
 
 @app.get("/health")

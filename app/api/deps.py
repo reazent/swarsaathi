@@ -2,7 +2,7 @@
 
 Today there is no auth: a client is identified by an `X-Client-Id` header that
 the frontend generates and stores locally. Tier resolution is a stub that reads
-a manual Pro allow-list (and, in dev, an `X-Shruti-Tier` override for testing).
+a manual Pro allow-list (and, in dev, an `X-SwarSaathi-Tier` override for testing).
 
 When auth + billing land, replace `resolve_tier()` with a lookup that maps the
 authenticated user -> entitlement synced from RevenueCat/Stripe webhooks. The
@@ -29,7 +29,7 @@ def get_client_id(request: Request) -> str:
 def resolve_tier(request: Request, client_id: str) -> str:
     # Dev-only override so the UI can be exercised in both states.
     if settings.is_dev:
-        override = request.headers.get("X-Shruti-Tier", "").strip().lower()
+        override = request.headers.get("X-SwarSaathi-Tier", "").strip().lower()
         if override in (FREE, PRO):
             return override
     # Manual grants until billing is wired.

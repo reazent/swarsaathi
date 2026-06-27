@@ -1,0 +1,12 @@
+{
+  "appId": "com.swarsaathi.swarpractice",
+  "appName": "SwarSaathi",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

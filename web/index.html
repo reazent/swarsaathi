@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Shruti — the pitch and discovery companion for Indian film music." />
-  <title>Shruti — Indian Film Music</title>
+  <meta name="description" content="SwarPractice by SwarSaathi — real-time swara tuner for Indian music learners." />
+  <title>SwarPractice — SwarSaathi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/css/milap.css" />
 </head>
-<body>
+<body class="launch-milap">
   <div class="ambient" aria-hidden="true">
     <span class="orb orb-a"></span>
     <span class="orb orb-b"></span>
@@ -22,13 +23,21 @@
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"><span class="brand-sa">सा</span></div>
         <div class="brand-text">
-          <h1>Shruti</h1>
-          <p>Indian film music</p>
+          <h1>SwarSaathi</h1>
+          <p>Your companion for sur &amp; swaras</p>
         </div>
       </div>
 
       <nav class="nav" aria-label="Tools">
-        <button class="nav-item active" data-view="pitch" type="button">
+        <button class="nav-item active" data-view="milap" type="button">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><path d="M12 18v3" />
+            </svg>
+          </span>
+          <span class="nav-label">SwarPractice</span>
+        </button>
+        <button class="nav-item" data-view="pitch" type="button" hidden>
           <span class="nav-icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" />
@@ -36,7 +45,7 @@
           </span>
           <span class="nav-label">Pitch Finder</span>
         </button>
-        <button class="nav-item" data-view="discover" type="button">
+        <button class="nav-item" data-view="discover" type="button" hidden>
           <span class="nav-icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
@@ -44,7 +53,7 @@
           </span>
           <span class="nav-label">Discover</span>
         </button>
-        <button class="nav-item" data-view="riyaz" type="button">
+        <button class="nav-item" data-view="riyaz" type="button" hidden>
           <span class="nav-icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><path d="M12 18v3" />
@@ -52,7 +61,7 @@
           </span>
           <span class="nav-label">Riyaz</span>
         </button>
-        <button class="nav-item" data-view="raag" type="button">
+        <button class="nav-item" data-view="raag" type="button" hidden>
           <span class="nav-icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <circle cx="8" cy="8" r="3" /><circle cx="16" cy="16" r="3" />
@@ -71,7 +80,7 @@
           </div>
           <p id="acct-meta" class="acct-meta"></p>
         </div>
-        <p class="foot-note">More tools on the way — lessons and recordings.</p>
+        <p class="foot-note">SwarPractice — hold your sur steady. More SwarSaathi tools coming soon.</p>
       </div>
     </aside>
 
@@ -179,7 +188,211 @@
         <section id="discover-results" class="discover-results" aria-live="polite"></section>
       </section>
 
-      <!-- ===================== RIYAZ (SWARA TUNER) ===================== -->
+      <!-- ===================== SWARPRACTICE (SWARA TUNER) ===================== -->
+      <section id="view-milap" class="view milap-view" data-view="milap">
+        <header class="view-head">
+          <div class="milap-title-row">
+            <h2 class="view-title">SwarPractice</h2>
+            <button type="button" class="milap-settings-btn" id="m-settings" aria-label="Open SwarPractice settings">Settings</button>
+          </div>
+          <p class="view-sub">Hold your sur steady — see your swara in real time, one session at a time.</p>
+        </header>
+
+        <section class="panel milap-top-controls">
+          <div class="control-row">
+            <div class="control-field">
+              <label for="m-sa">Your Pitch</label>
+              <select id="m-sa"></select>
+            </div>
+            <div class="control-field target-field">
+              <label for="m-target-trigger">Target note</label>
+              <button type="button" class="target-trigger" id="m-target-trigger" aria-haspopup="dialog" aria-expanded="false">
+                <span id="m-target-label">Any (free practice)</span>
+              </button>
+              <div class="target-sheet" id="m-target-sheet" hidden role="dialog" aria-label="Choose target note">
+                <button type="button" class="target-any" data-target="any">Any (free practice)</button>
+                <div class="target-grid-head">
+                  <span class="target-row-label"></span>
+                  <span>Mandra</span>
+                  <span>Madhya</span>
+                  <span>Taar</span>
+                </div>
+                <div class="target-grid" id="m-target-grid"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="accomp-mini-bar" id="m-accomp-bar" hidden>
+          <div>
+            <span class="mini-kicker">Playing</span>
+            <strong id="m-accomp-summary">Accompaniment</strong>
+          </div>
+          <div class="mini-actions">
+            <button type="button" id="m-accomp-open">Adjust</button>
+            <button type="button" id="m-accomp-stop">Stop</button>
+          </div>
+        </div>
+
+        <section class="panel milap-session-setup" id="m-session-setup">
+          <div class="session-chips" id="m-duration">
+            <span class="chip-label">Session</span>
+            <button type="button" class="chip active" data-mode="timed" data-sec="5">5s</button>
+            <button type="button" class="chip" data-mode="timed" data-sec="10">10s</button>
+            <button type="button" class="chip" data-mode="timed" data-sec="20">20s</button>
+            <button type="button" class="chip" data-mode="timed" data-sec="30">30s</button>
+            <button type="button" class="chip" data-mode="free" data-sec="0">Free</button>
+          </div>
+          <p class="live-stat" id="m-live-stat">Ready · 5s drill — choose session length, then start</p>
+        </section>
+
+        <p id="m-status" class="milap-hint milap-status">Tap Start listening, allow your mic, then sing your target note.</p>
+
+        <section class="panel milap-readout">
+          <div class="readout-stage" id="m-stage">
+            <div class="swara-display">
+              <div class="swara-stack" id="m-swara-stack" aria-label="Detected swara">
+                <div class="saptak-label" id="m-saptak"></div>
+                <div class="milap-swara-name swara-name" id="m-letter">—</div>
+              </div>
+              <div class="swara-fullname" id="m-fullname">Sing a note</div>
+              <div class="swara-meta" id="m-meta">— Hz</div>
+              <p class="saptak-legend">Set Your Pitch to madhya Sa · register: Mandra · Madhya · Taar</p>
+            </div>
+
+            <div class="wave-wrap">
+              <canvas id="m-wave" width="320" height="96" aria-label="Pitch deviation wave"></canvas>
+              <div class="wave-labels"><span>−70¢</span><span>steady</span><span>+70¢</span></div>
+              <div class="wave-legend">
+                <span class="wave-legend-item steady"><i aria-hidden="true"></i> Steady band</span>
+                <span class="wave-legend-item ref"><i aria-hidden="true"></i> Target center</span>
+                <span class="wave-legend-item act"><i aria-hidden="true"></i> Your pitch</span>
+              </div>
+            </div>
+
+            <div class="session-live" id="m-live" hidden>
+              <div class="live-bar-wrap">
+                <div class="live-bar" id="m-live-bar"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel milap-summary" id="m-summary" hidden>
+          <h2 class="summary-title" id="m-summary-title">Session complete</h2>
+          <p class="summary-target" id="m-summary-target"></p>
+          <div class="score-duo">
+            <div class="score-card acc">
+              <span class="score-label">Accuracy</span>
+              <span class="score-value" id="m-acc">—</span>
+              <svg class="score-ring" viewBox="0 0 36 36" aria-hidden="true">
+                <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="ring-fill acc-fill" id="m-acc-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+            </div>
+            <div class="score-card stb">
+              <span class="score-label">Stability</span>
+              <span class="score-value" id="m-stb">—</span>
+              <svg class="score-ring" viewBox="0 0 36 36" aria-hidden="true">
+                <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="ring-fill stb-fill" id="m-stb-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+            </div>
+          </div>
+          <p class="milap-score-line">SwarPractice score: <strong id="m-composite">—</strong></p>
+          <div class="summary-wave-wrap">
+            <canvas id="m-summary-wave" width="320" height="56" aria-label="Session trace"></canvas>
+          </div>
+          <div class="summary-grid">
+            <div class="summary-block">
+              <span class="block-label">Cents spread</span>
+              <div class="histogram" id="m-hist"></div>
+            </div>
+            <div class="summary-block">
+              <span class="block-label">Pitch bias</span>
+              <div class="bias-bar">
+                <span>♭ flat</span>
+                <div class="bias-track"><span class="bias-needle" id="m-bias-needle"></span></div>
+                <span>sharp ♯</span>
+              </div>
+              <p class="block-detail" id="m-avg-cents"></p>
+            </div>
+          </div>
+          <ul class="summary-stats" id="m-stats"></ul>
+          <p class="summary-tip" id="m-tip"></p>
+          <div class="summary-actions">
+            <button type="button" class="btn-secondary" id="m-again">Practice again</button>
+            <button type="button" class="btn-ghost" id="m-longer">Try 10s</button>
+          </div>
+        </section>
+
+        <section class="panel milap-bottom">
+          <div class="milap-panel-tabs" role="tablist" aria-label="Practice controls">
+            <button type="button" class="chip active" data-m-panel="practice">Riyaz</button>
+            <button type="button" class="chip" data-m-panel="accomp">Accompaniment</button>
+          </div>
+
+          <div id="m-panel-practice" class="milap-control-panel">
+            <div class="compact-controls">
+              <div class="control-field compact">
+                <label for="m-strict">Strictness</label>
+                <select id="m-strict">
+                  <option value="beginner">Beginner ±35¢</option>
+                  <option value="intermediate" selected>Intermediate ±20¢</option>
+                  <option value="expert">Expert ±12¢</option>
+                </select>
+              </div>
+              <div class="control-field compact">
+                <label for="m-sensitivity">Sensitivity</label>
+                <input type="range" id="m-sensitivity" min="1" max="5" value="3" />
+              </div>
+            </div>
+            <button type="button" class="mic-btn milap-mic-btn" id="m-mic">
+              <span class="mic-dot" aria-hidden="true"></span>
+              <span id="m-mic-label">Start listening</span>
+            </button>
+          </div>
+
+          <div id="m-panel-accomp" class="milap-control-panel" hidden>
+            <div class="accompaniment-controls" aria-label="Accompaniment controls">
+              <div class="accomp-head">
+                <div>
+                  <span class="chip-label">Accompaniment</span>
+                  <p>Same Your Pitch setting drives voice, tanpura, and rhythm.</p>
+                </div>
+              </div>
+              <div class="accomp-grid">
+                <label class="check accomp-check"><input type="checkbox" id="m-tanpura" /> <span>Tanpura</span></label>
+                <div class="control-field compact">
+                  <label for="m-tanpura-mode">Tanpura tuning</label>
+                  <select id="m-tanpura-mode">
+                    <option value="Sa-Pa">Sa-Pa · Pa-Sa-Sa-_Sa_</option>
+                    <option value="Sa-ma">Sa-ma · ma-Sa-Sa-_Sa_</option>
+                  </select>
+                </div>
+                <label class="check accomp-check"><input type="checkbox" id="m-metronome" /> <span>Metronome</span></label>
+                <div class="control-field compact">
+                  <label for="m-taal">Cycle</label>
+                  <select id="m-taal">
+                    <option value="teentaal">Teentaal · 16</option>
+                    <option value="keharwa">Keharwa · 8</option>
+                    <option value="dadra">Dadra · 6</option>
+                    <option value="ektaal">Ektaal · 12</option>
+                    <option value="rupak">Rupak · 7</option>
+                  </select>
+                </div>
+                <div class="control-field compact bpm-field">
+                  <label for="m-bpm">BPM <span id="m-bpm-val">80</span></label>
+                  <input type="range" id="m-bpm" min="40" max="180" value="80" step="1" />
+                </div>
+                <label class="check accomp-check disabled" aria-disabled="true"><input type="checkbox" id="m-tabla" disabled /> <span>Tabla loops coming soon</span></label>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ===================== RIYAZ (legacy — hidden at launch) ===================== -->
       <section id="view-riyaz" class="view" data-view="riyaz" hidden>
         <header class="view-head">
           <h2 class="view-title">Riyaz</h2>
@@ -188,7 +401,7 @@
 
         <section class="panel riyaz-controls">
           <div class="riyaz-control">
-            <label for="r-sa">Your Sa</label>
+            <label for="r-sa">Your Pitch</label>
             <select id="r-sa"></select>
           </div>
           <div class="riyaz-control">
@@ -200,7 +413,7 @@
             </div>
           </div>
           <div class="riyaz-control riyaz-toggles">
-            <label class="check"><input type="checkbox" id="r-drone" /> <span>Sa drone</span></label>
+            <label class="check"><input type="checkbox" id="r-drone" /> <span>Tanpura reference</span></label>
           </div>
           <div class="riyaz-control riyaz-mic">
             <button id="r-mic" type="button" class="mic-btn">
@@ -284,23 +497,32 @@
     </main>
   </div>
 
-  <nav class="mobile-tabs" aria-label="Tools">
-    <button class="tab active" data-view="pitch" type="button">Pitch</button>
+  <nav class="mobile-tabs" aria-label="Tools" hidden>
+    <button class="tab active" data-view="milap" type="button">SwarPractice</button>
+    <button class="tab" data-view="pitch" type="button">Pitch</button>
     <button class="tab" data-view="discover" type="button">Discover</button>
     <button class="tab" data-view="riyaz" type="button">Riyaz</button>
     <button class="tab" data-view="raag" type="button">Raag</button>
   </nav>
 
+  <dialog class="milap-settings-sheet" id="m-settings-dialog">
+    <form method="dialog">
+      <h3>Settings</h3>
+      <label class="check"><input type="checkbox" id="m-octave-correct" /> Speaker-test octave correction</label>
+      <button type="submit" class="btn-secondary">Done</button>
+    </form>
+  </dialog>
+
   <div id="upgrade-modal" class="modal" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
       <button id="upgrade-close" type="button" class="modal-close" aria-label="Close">×</button>
-      <p class="modal-kicker">Shruti Pro</p>
+      <p class="modal-kicker">SwarSaathi Pro</p>
       <h2 id="upgrade-title" class="modal-title">Unlock the full studio</h2>
       <ul class="modal-perks">
         <li><strong>Unlimited</strong> song pitch lookups</li>
         <li>Analyze <strong>your own recordings</strong></li>
         <li>Transpose &amp; best-Sa-for-your-voice</li>
-        <li>Riyaz: session recording, drills &amp; progress tracking</li>
+        <li>SwarPractice: session recording, drills &amp; progress tracking</li>
         <li>Raag: Dadra, Rupak &amp; more taals</li>
         <li>Tanpura &amp; shruti-box drones · offline · no ads</li>
       </ul>
