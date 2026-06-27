@@ -132,7 +132,7 @@ function sessionSummaryDuration() {
 function formatReadyStat() {
   if (sessionPaused) return "Paused — tap Start to resume";
   if (isContinuousSession()) return "Ready · free practice — tap Start, Stop to review";
-  return `Ready · ${sessionSec}s drill — tap Start, Stop to pause`;
+  return `Ready · ${sessionSec}s drill — tap Start, Stop & review when done`;
 }
 
 function setDurationChipsLocked(locked) {
@@ -697,7 +697,7 @@ async function startListening() {
     $("m-live").hidden = false;
     setDurationChipsLocked(true);
     $("m-mic").classList.add("running");
-    $("m-mic-label").textContent = isContinuousSession() ? "Stop & review" : "Stop";
+    $("m-mic-label").textContent = "Stop & review";
     $("m-live-bar").style.width = "0%";
     $("m-live").querySelector(".live-bar-wrap")?.classList.toggle("is-continuous", isContinuousSession());
     $("m-status").textContent = "Calibrating — stay quiet for a moment…";
@@ -727,10 +727,10 @@ async function resumeListening() {
 
     setDurationChipsLocked(true);
     $("m-mic").classList.add("running");
-    $("m-mic-label").textContent = isContinuousSession() ? "Stop & review" : "Stop";
+    $("m-mic-label").textContent = "Stop & review";
     $("m-status").textContent = isContinuousSession()
-      ? "Resumed — tap Stop to pause."
-      : `Resumed · ${sessionSec}s drill — tap Stop to pause.`;
+      ? "Resumed — tap Stop & review when done."
+      : `Resumed · ${sessionSec}s drill — tap Stop & review when done.`;
 
     loop();
   } catch (err) {
@@ -1148,8 +1148,7 @@ function bindEvents() {
 
   $("m-mic").addEventListener("click", () => {
     if (sessionActive) {
-      if (isContinuousSession()) finishSession();
-      else pauseListening();
+      finishSession();
       return;
     }
     startListening();

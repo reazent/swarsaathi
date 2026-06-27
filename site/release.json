@@ -2,9 +2,9 @@
   "appName": "SwarSaathi",
   "toolName": "SwarPractice",
   "version": "1.1",
-  "build": "3",
+  "build": "4",
   "channel": "iOS App Store",
-  "status": "Live on the App Store",
+  "status": "Preparing App Store release",
   "iosAppUrl": "https://apps.apple.com/app/id6781765064",
   "practiceUrl": "/practice/",
   "updatedAt": "2026-06-27"
