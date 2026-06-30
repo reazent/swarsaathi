@@ -249,16 +249,30 @@ h3 {
 }
 
 .release-card {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 1rem 1.25rem;
   margin: 0.2rem 0 1.4rem;
-  padding: 1rem;
+  padding: 1rem 1.1rem;
   border: 1px solid rgba(95, 212, 199, 0.22);
   border-radius: 1.2rem;
   background: rgba(95, 212, 199, 0.075);
+}
+
+.release-app-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 0.95rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.release-card-copy {
+  min-width: 0;
+}
+
+.release-card-cta {
+  white-space: nowrap;
 }
 
 .release-card strong {
@@ -370,7 +384,7 @@ h3 {
 
 .trust-strip {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
   margin: 0 clamp(1rem, 5vw, 5rem) 2rem;
   overflow: hidden;
@@ -379,9 +393,40 @@ h3 {
   background: var(--border);
 }
 
-.trust-strip div {
+.trust-strip > div,
+.trust-item {
   padding: 1.2rem;
   background: rgba(255, 255, 255, 0.06);
+}
+
+.trust-item-ios {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.trust-app-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  flex: 0 0 auto;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
+}
+
+.trust-item-copy {
+  min-width: 0;
+}
+
+.release-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.35rem;
+  row-gap: 0.15rem;
+}
+
+.release-meta-dot {
+  color: rgba(189, 180, 213, 0.72);
 }
 
 .trust-strip strong,
@@ -579,9 +624,12 @@ blockquote {
   }
 
   .cards.three,
-  .process-grid,
-  .trust-strip {
+  .process-grid {
     grid-template-columns: 1fr;
+  }
+
+  .trust-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dark-panel {
@@ -612,6 +660,19 @@ blockquote {
   }
 
   .phone-frame {
+    width: 100%;
+  }
+
+  .trust-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .release-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .release-card-cta {
+    grid-column: 1 / -1;
     width: 100%;
   }
 }
