@@ -3,10 +3,10 @@
     appName: "SwarSaathi",
     toolName: "SwarPractice",
     version: "1.1",
-    build: "2",
+    build: "4",
     channel: "iOS App Store",
-    status: "Preparing App Store release",
-    iosAppUrl: "",
+    status: "Live on App Store",
+    iosAppUrl: "https://apps.apple.com/app/id6781765064",
     practiceUrl: "/practice/"
   };
 
