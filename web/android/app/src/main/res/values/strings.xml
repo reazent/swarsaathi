@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SwarPractice</string>
-    <string name="title_activity_main">SwarPractice</string>
+    <string name="app_name">SwarSaathi</string>
+    <string name="title_activity_main">SwarSaathi</string>
     <string name="package_name">com.swarsaathi.swarpractice</string>
     <string name="custom_url_scheme">com.swarsaathi.swarpractice</string>
 </resources>

@@ -8,11 +8,12 @@ import { readFile } from "node:fs/promises";
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const sourceRoot = join(projectRoot, "web", "audio", "tanpura");
 const outputRoot = join(projectRoot, "web", "audio", "tanpura-optimized");
-const sampleRate = 4000;
+const sampleRate = 8000;
 const analysisStartSec = 30;
 const analysisDurationSec = 300;
-const loopDurationSec = 12;
-const fadeSec = 0.45;
+const loopDurationSec = 16;
+const fadeSec = 0.75;
+const aacBitrate = "160k";
 
 function commandExists(command) {
   return spawnSync(command, ["-version"], { stdio: "ignore" }).status === 0;
@@ -145,7 +146,7 @@ function exportLoop(source, destination, sourceStartSec) {
     `[tailsrc]atrim=${mainEnd}:${tailEnd},asetpts=PTS-STARTPTS[tail]`,
     `[tail][head]acrossfade=d=${fadeSec}:c1=tri:c2=tri[seam]`,
     `[main][seam]concat=n=2:v=0:a=1[joined]`,
-    `[joined]asetpts=N/SR/TB,loudnorm=I=-20:TP=-2:LRA=7[out]`,
+    `[joined]asetpts=N/SR/TB,loudnorm=I=-16:TP=-1.5:LRA=9[out]`,
   ].join(";");
   run([
     "-y",
@@ -156,7 +157,9 @@ function exportLoop(source, destination, sourceStartSec) {
     "-filter_complex", filter,
     "-map", "[out]",
     "-c:a", "aac",
-    "-b:a", "80k",
+    "-b:a", aacBitrate,
+    "-ar", "44100",
+    "-ac", "1",
     "-movflags", "+faststart",
     destination,
   ]);
@@ -200,7 +203,7 @@ for (const source of await listAudioFiles(sourceRoot)) {
     durationSec: loopDurationSec,
     sourceStartSec: Number(selection.sourceStartSec.toFixed(3)),
     seamScore: selection.seamScore,
-    encoding: "AAC 80 kbps",
+    encoding: `AAC ${aacBitrate}`,
     sourceHash,
     outputHash,
   });

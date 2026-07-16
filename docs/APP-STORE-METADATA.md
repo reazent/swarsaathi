@@ -10,6 +10,7 @@
 - **Secondary category:** Education
 - **Price:** Free
 - **Age rating:** 4+
+- **Current release:** Version `1.2`, Build `5`
 
 ## Subtitle
 
@@ -17,7 +18,7 @@ Your sur & swara companion
 
 ## Promotional text
 
-Practice Indian swaras with live pitch, saptak notation, timed drills, free mode, and instant accuracy feedback.
+Practice Indian swaras with live pitch feedback, offline tanpura, reference notes, and private on-device session recordings.
 
 ## Short description
 
@@ -38,7 +39,10 @@ Current features:
 - Free practice mode
 - Accuracy and stability summary after practice
 - Pitch bias and cents spread feedback
-- Optional tanpura and metronome practice support
+- Offline tanpura loops for available pitches and tunings
+- Reference-note playback for auditory confirmation while singing
+- Optional metronome for rhythm support
+- Optional local session recording and sharing from your device
 - On-device microphone processing
 
 SwarSaathi is designed for learners of Indian classical, semi-classical, film, and devotional music who want a simple way to understand notes, practice sur, and improve steadily.
@@ -47,34 +51,40 @@ SwarSaathi is designed for learners of Indian classical, semi-classical, film, a
 
 swara, sargam, riyaz, Indian music, Hindustani, Carnatic, pitch tuner, singing, Sa, sur, music practice, vocal tuner
 
-## What's new
+## What's new (1.2)
 
-Initial iOS release of SwarSaathi with SwarPractice: live swara detection, saptak notation, timed/free practice modes, and session feedback.
+SwarPractice 1.2 adds offline tanpura for available pitches, continuous reference-note playback in Riyaz, optional local session recording with native share, a clearer mobile practice layout, and first-run onboarding. Tabla accompaniment remains planned for a later release.
 
 ## Review notes
 
-SwarPractice uses the microphone for real-time pitch detection. Audio is processed on device and is not uploaded in v1. To test, select Sa = C3, tap Start listening, allow microphone access, and sing a sustained note.
+SwarPractice uses the microphone for real-time pitch detection. Live analysis stays on device. Optional session recording also stays on device until the learner shares or deletes it; SwarSaathi does not upload recordings.
+
+To test:
+
+1. Select Sa = C3.
+2. Complete or skip the short onboarding.
+3. Tap Start listening, allow microphone access, and sing a sustained note.
+4. Optionally enable Record this session, then stop and open Recordings to play, share, or delete.
+5. Open Sound / Accompaniment to try offline tanpura for an available pitch.
+
+Privacy Policy: https://swarsaathi.com/privacy.html  
+Support: https://swarsaathi.com/support.html
 
 ## URLs
 
-Use Cloudflare Pages or your final domain to host:
-
-- Privacy Policy URL: `/privacy.html`
-- Support URL: `/support.html`
-
-Temporary local files:
-
-- `web/privacy.html`
-- `web/support.html`
+- Privacy Policy URL: https://swarsaathi.com/privacy.html
+- Support URL: https://swarsaathi.com/support.html
 
 ## App privacy answers
 
-- **Data collected:** none for SwarPractice v1, unless analytics/crash reporting is configured before release.
-- **Microphone audio:** used only for on-device pitch detection.
+- **Data collected:** none for SwarPractice 1.2, unless analytics/crash reporting is configured before release.
+- **Microphone audio:** used for on-device pitch detection; optional local recording when the learner enables it.
 - **Audio uploaded:** no.
-- **Linked to user:** no account required in v1.
+- **Linked to user:** no account required.
 - **Tracking:** no.
 - **Third-party analytics:** configure only after privacy answers are updated.
+
+If Apple asks about Audio Data: select “Audio Data” only if required for local recording disclosure, and mark it as not linked / not used for tracking / not uploaded to your servers. Preferred framing: microphone is processed on device; recordings remain local until the user shares them through the system share sheet.
 
 ## Screenshot plan
 
@@ -84,15 +94,16 @@ Recommended 6.7-inch screenshots:
 
 1. **Home / ready state** — Sa selector, target selector, session controls, Start button.
 2. **Live Madhya Sa** — large `Sa`, Madhya saptak, C3 / Hz visible.
-3. **Taar notation** — dot above swara, Taar saptak label.
-4. **Mandra notation** — dot below swara, Mandra saptak label.
-5. **Free practice** — live wave while singing.
+3. **Reference note** — Play note control with a selected target swara.
+4. **Accompaniment** — Offline tanpura available for the current Sa.
+5. **Recordings** — Local recording list with Share / Delete.
 6. **Session summary** — accuracy, stability, score, pitch bias.
 
 Suggested screenshot captions:
 
 - "Set your Sa and start riyaz"
 - "See swara and saptak instantly"
-- "Practice Mandra, Madhya, and Taar"
-- "Track accuracy and stability"
+- "Hear a reference note while you sing"
+- "Practice with offline tanpura"
+- "Record and share on your device"
 - "Review every session"

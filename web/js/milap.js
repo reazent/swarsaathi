@@ -189,6 +189,8 @@ let rafId = null;
 let stabilizer = null;
 let droneNodes = null;
 let tanpuraAudio = null;
+let tanpuraNodes = null;
+const tanpuraBufferCache = new Map();
 let referenceNodes = null;
 let metronomeTimer = null;
 let metronomeBeat = 0;
@@ -755,15 +757,20 @@ async function startReferenceNote() {
   if (ctx.state === "suspended") await ctx.resume();
   const midi = saMidi + targetSwaraIdx + targetOctave * 12;
   const frequency = midiToFreq(midi);
+  // Phone speakers need more headroom than MacBook speakers; keep desktop calmer.
+  const targetLevel = isIosNativeShell() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    ? 0.82
+    : 0.24;
   const master = ctx.createGain();
   master.gain.setValueAtTime(0.0001, ctx.currentTime);
-  master.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.08);
+  master.gain.exponentialRampToValueAtTime(targetLevel, ctx.currentTime + 0.08);
   master.connect(ctx.destination);
 
   const harmonics = [
-    { multiple: 1, level: 0.7, type: "sine" },
-    { multiple: 2, level: 0.2, type: "sine" },
-    { multiple: 3, level: 0.1, type: "triangle" },
+    { multiple: 1, level: 0.78, type: "sine" },
+    { multiple: 2, level: 0.28, type: "sine" },
+    { multiple: 3, level: 0.14, type: "triangle" },
+    { multiple: 4, level: 0.06, type: "sine" },
   ];
   const oscillators = harmonics.map(({ multiple, level, type }) => {
     const osc = ctx.createOscillator();
@@ -1109,6 +1116,7 @@ async function startListening() {
     $("m-live-bar").style.width = "0%";
     $("m-live").querySelector(".live-bar-wrap")?.classList.toggle("is-continuous", isContinuousSession());
     $("m-status").textContent = "Calibrating — stay quiet for a moment…";
+    setListeningLayout(true);
 
     loop();
   } catch (err) {
@@ -1142,6 +1150,7 @@ async function resumeListening() {
     $("m-status").textContent = isContinuousSession()
       ? "Resumed — tap Stop & review when done."
       : `Resumed · ${sessionSec}s drill — tap Stop & review when done.`;
+    setListeningLayout(true);
 
     loop();
   } catch (err) {
@@ -1151,6 +1160,12 @@ async function resumeListening() {
         ? "Microphone blocked. Allow mic access in your device or browser settings."
         : "Couldn't access the microphone on this device.";
   }
+}
+
+function setListeningLayout(active) {
+  milapView?.classList.toggle("listening-active", Boolean(active));
+  if (!active) return;
+  $("m-stage")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function pauseListening() {
@@ -1165,6 +1180,7 @@ function pauseListening() {
   rafId = null;
   disconnectMic();
   setDurationChipsLocked(false);
+  setListeningLayout(false);
   $("m-mic")?.classList.remove("running");
   $("m-live").querySelector(".live-bar-wrap")?.classList.remove("is-continuous");
   $("m-mic-label").textContent = "Start listening";
@@ -1194,6 +1210,7 @@ function stopListening({ saveRecording: shouldSaveRecording = false } = {}) {
   rafId = null;
   disconnectMic();
   setDurationChipsLocked(false);
+  setListeningLayout(false);
   $("m-mic")?.classList.remove("running");
   $("m-live").querySelector(".live-bar-wrap")?.classList.remove("is-continuous");
   if ($("m-mic-label")) $("m-mic-label").textContent = "Start listening";
@@ -1432,11 +1449,32 @@ function tanpuraSources() {
   return hasLocal ? [local, remote] : [remote, local];
 }
 
+function tanpuraGainLevel() {
+  return isIosNativeShell() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    ? 0.62
+    : 0.48;
+}
+
+function isTanpuraPlaying() {
+  return Boolean(tanpuraNodes || (tanpuraAudio && !tanpuraAudio.paused));
+}
+
+async function loadTanpuraBuffer(src) {
+  if (tanpuraBufferCache.has(src)) return tanpuraBufferCache.get(src);
+  const response = await fetch(src, { cache: "force-cache" });
+  if (!response.ok) throw new Error(`Tanpura fetch failed (${response.status})`);
+  const data = await response.arrayBuffer();
+  const ctx = ensureContext();
+  const buffer = await ctx.decodeAudioData(data.slice(0));
+  tanpuraBufferCache.set(src, buffer);
+  return buffer;
+}
+
 async function startTanpura() {
   stopReferenceNote();
   stopTanpura();
-  ensureContext();
-  if (audioCtx.state === "suspended") await audioCtx.resume();
+  const ctx = ensureContext();
+  if (ctx.state === "suspended") await ctx.resume();
   const sources = tanpuraSources();
   if (!sources.length) {
     if (tanpuraToggle) tanpuraToggle.checked = false;
@@ -1445,26 +1483,52 @@ async function startTanpura() {
     updateAccompanimentUi();
     return;
   }
-  tanpuraAudio = new Audio();
-  tanpuraAudio.loop = true;
-  tanpuraAudio.preload = "auto";
-  tanpuraAudio.volume = 0.42;
-  tanpuraAudio.addEventListener("playing", () => {
-    if (tanpuraToggle) tanpuraToggle.checked = true;
-    $("m-status").textContent = "Tanpura on — use headphones if it affects mic detection.";
-    updatePitchAvailability();
-    updateAccompanimentUi();
-  }, { once: true });
+
   let lastError = null;
   for (const src of sources) {
     try {
-      tanpuraAudio.src = src;
-      await tanpuraAudio.play();
+      const buffer = await loadTanpuraBuffer(src);
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      source.loop = true;
+      // Tiny edge inset avoids encoder padding clicks at the seam on some AAC files.
+      if (buffer.duration > 0.08) {
+        source.loopStart = 0.02;
+        source.loopEnd = Math.max(0.04, buffer.duration - 0.02);
+      }
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(tanpuraGainLevel(), ctx.currentTime + 0.12);
+      source.connect(gain).connect(ctx.destination);
+      source.start(0);
+      tanpuraNodes = { source, gain, src };
+      if (tanpuraToggle) tanpuraToggle.checked = true;
+      $("m-status").textContent = "Tanpura on — use headphones if it affects mic detection.";
+      updatePitchAvailability();
+      updateAccompanimentUi();
       return;
     } catch (err) {
       lastError = err;
     }
   }
+
+  // Fallback for environments where decodeAudioData rejects the asset.
+  try {
+    tanpuraAudio = new Audio();
+    tanpuraAudio.loop = true;
+    tanpuraAudio.preload = "auto";
+    tanpuraAudio.volume = Math.min(1, tanpuraGainLevel());
+    tanpuraAudio.src = sources[0];
+    await tanpuraAudio.play();
+    if (tanpuraToggle) tanpuraToggle.checked = true;
+    $("m-status").textContent = "Tanpura on — use headphones if it affects mic detection.";
+    updatePitchAvailability();
+    updateAccompanimentUi();
+    return;
+  } catch (err) {
+    lastError = err;
+  }
+
   if (tanpuraToggle) tanpuraToggle.checked = false;
   updatePitchAvailability();
   updateAccompanimentUi();
@@ -1474,10 +1538,29 @@ async function startTanpura() {
 }
 
 function stopTanpura() {
-  if (!tanpuraAudio) return;
-  tanpuraAudio.pause();
-  tanpuraAudio.src = "";
-  tanpuraAudio = null;
+  if (tanpuraNodes) {
+    const { source, gain } = tanpuraNodes;
+    const ctx = audioCtx;
+    try {
+      if (ctx && gain) {
+        const now = ctx.currentTime;
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+        source.stop(now + 0.1);
+      } else {
+        source.stop();
+      }
+    } catch (_err) {
+      // Already stopped.
+    }
+    tanpuraNodes = null;
+  }
+  if (tanpuraAudio) {
+    tanpuraAudio.pause();
+    tanpuraAudio.src = "";
+    tanpuraAudio = null;
+  }
   updateAccompanimentUi();
 }
 
@@ -1524,7 +1607,7 @@ function stopMetronome() {
 
 
 function updateAccompanimentUi() {
-  const tanpuraOn = Boolean(tanpuraToggle?.checked && tanpuraAudio);
+  const tanpuraOn = Boolean(tanpuraToggle?.checked && isTanpuraPlaying());
   const metroOn = Boolean(metronomeToggle?.checked && metronomeTimer);
   const referenceOn = Boolean(referenceNodes);
   const active = tanpuraOn || metroOn || referenceOn;

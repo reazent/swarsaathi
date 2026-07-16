@@ -2,10 +2,10 @@
   const fallback = {
     appName: "SwarSaathi",
     toolName: "SwarPractice",
-    version: "1.1",
-    build: "4",
+    version: "1.2",
+    build: "5",
     channel: "iOS App Store",
-    status: "Live on App Store",
+    status: "Preparing App Store release",
     iosAppUrl: "https://apps.apple.com/app/id6781765064",
     practiceUrl: "/practice/"
   };

@@ -295,7 +295,7 @@
 }
 .milap-view .accomp-head { display: flex; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.6rem; }
 .milap-view .accomp-head p { margin: 0.18rem 0 0; font-size: 0.72rem; color: var(--text-muted); line-height: 1.35; }
-.milap-view .accomp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; align-items: end; }
+.milap-view .accomp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 0.85rem; align-items: start; }
 .milap-view .accomp-check { min-height: 2.7rem; padding: 0.55rem 0.65rem; border-radius: 12px; background: rgba(7,5,16,0.36); border: 1px solid rgba(255,255,255,0.08); }
 .milap-view .accomp-check.disabled { opacity: 0.5; }
 .milap-view .bpm-field { grid-column: span 1; }
@@ -748,18 +748,37 @@ body.launch-milap .sidebar-foot .account { display: none; }
   .milap-view > .milap-summary { grid-area: main; z-index: 6; align-self: stretch; margin: 0; overflow: auto; }
   .milap-view > .accomp-mini-bar { grid-row: 4; z-index: 6; align-self: start; }
 
-  .milap-view.accomp-mode > .milap-bottom,
-  .milap-view.recordings-mode > .milap-bottom {
-    grid-column: 1 / -1;
+  /* Accompaniment / Recordings: leave the two-column practice grid so
+     status text cannot sit on top of the destination nav copy. */
+  .milap-view.accomp-mode,
+  .milap-view.recordings-mode {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     max-width: 760px;
-    width: 100%;
-    justify-self: center;
+    margin: 0 auto;
   }
   .milap-view.accomp-mode > .milap-destination-nav,
-  .milap-view.recordings-mode > .milap-destination-nav {
-    grid-column: 1 / -1;
-    width: min(100%, 720px);
-    justify-self: center;
+  .milap-view.recordings-mode > .milap-destination-nav,
+  .milap-view.accomp-mode > .milap-top-controls,
+  .milap-view.recordings-mode > .milap-top-controls,
+  .milap-view.accomp-mode > .milap-status,
+  .milap-view.recordings-mode > .milap-status,
+  .milap-view.accomp-mode > .milap-bottom,
+  .milap-view.recordings-mode > .milap-bottom {
+    width: 100%;
+    max-width: 760px;
+    grid-area: auto;
+    grid-column: auto;
+    grid-row: auto;
+    z-index: auto;
+    align-self: stretch;
+  }
+  .milap-view.accomp-mode > .milap-status,
+  .milap-view.recordings-mode > .milap-status {
+    position: relative;
+    margin: 0.35rem 0 0.85rem;
+    text-align: center;
   }
   .milap-view .target-cell { min-height: 2.75rem; }
 }
@@ -771,6 +790,57 @@ body.launch-milap .sidebar-foot .account { display: none; }
   }
   .milap-view .milap-destination-nav { display: none; }
   .milap-view .milap-title-row { align-items: flex-end; }
+
+  /* Keep swara + wave on screen while singing; tuck secondary controls away. */
+  .milap-view.listening-active .milap-readout {
+    position: sticky;
+    top: max(0.35rem, env(safe-area-inset-top));
+    z-index: 45;
+    margin-top: 0.35rem;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(18px);
+    background:
+      linear-gradient(180deg, rgba(22, 14, 40, 0.96), rgba(14, 10, 28, 0.94));
+  }
+  .milap-view.listening-active .view-head,
+  .milap-view.listening-active .milap-top-controls,
+  .milap-view.listening-active .milap-session-setup,
+  .milap-view.listening-active .reference-note-card,
+  .milap-view.listening-active .compact-controls,
+  .milap-view.listening-active .record-session-option,
+  .milap-view.listening-active .milap-panel-tabs {
+    display: none !important;
+  }
+  .milap-view.listening-active .saptak-legend,
+  .milap-view.listening-active .wave-legend {
+    display: none;
+  }
+  .milap-view.listening-active .wave-wrap canvas {
+    height: 118px;
+  }
+  .milap-view.listening-active .milap-bottom {
+    position: sticky;
+    bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    z-index: 44;
+    margin-top: 0.55rem;
+    padding: 0.55rem;
+    border-radius: 18px;
+    background: rgba(12, 8, 24, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.28);
+  }
+  .milap-view.listening-active .milap-mic-btn {
+    min-height: 3.35rem;
+  }
+  .milap-view.listening-active .milap-status {
+    position: sticky;
+    top: calc(env(safe-area-inset-top) + 0.15rem);
+    z-index: 46;
+    margin: 0.25rem 0 0;
+    text-align: center;
+    font-size: 0.78rem;
+  }
+
   .milap-view .milap-mobile-nav {
     position: fixed;
     left: 0;

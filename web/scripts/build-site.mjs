@@ -17,7 +17,7 @@ function buildPracticeHtml(source) {
     <a href="/">SwarSaathi home</a>
     <a class="active" href="/practice/" aria-current="page">SwarPractice</a>
     <a href="/support.html" data-ios-app-link data-ready-label="Open iOS app" data-pending-label="iOS app soon">iOS app soon</a>
-    <span>v<span data-release-version>1.1 (4)</span></span>
+    <span>v<span data-release-version>1.2 (5)</span></span>
   </nav>
 `;
 

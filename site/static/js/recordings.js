@@ -64,9 +64,69 @@ function extensionFor(mimeType = "") {
   return "webm";
 }
 
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",", 2)[1] || "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+let nativePlugins;
+
+function getNativeSharePlugins() {
+  const capacitor = window.Capacitor;
+  if (!capacitor?.isNativePlatform?.()
+      || !capacitor.isPluginAvailable?.("Share")
+      || !capacitor.isPluginAvailable?.("Filesystem")
+      || typeof capacitor.registerPlugin !== "function") {
+    return null;
+  }
+  nativePlugins ||= {
+    Share: capacitor.registerPlugin("Share"),
+    Filesystem: capacitor.registerPlugin("Filesystem"),
+  };
+  return nativePlugins;
+}
+
+async function shareRecordingNatively(record, fileName) {
+  const plugins = getNativeSharePlugins();
+  if (!plugins) return false;
+
+  const path = `shared-recordings/${record.id}-${fileName}`;
+  const data = await blobToBase64(record.blob);
+  const saved = await plugins.Filesystem.writeFile({
+    path,
+    data,
+    directory: "CACHE",
+    recursive: true,
+  });
+
+  try {
+    await plugins.Share.share({
+      title: "SwarPractice recording",
+      text: [record.target, record.sa].filter(Boolean).join(" · "),
+      files: [saved.uri],
+      dialogTitle: "Share your SwarPractice recording",
+    });
+  } finally {
+    await plugins.Filesystem.deleteFile({ path, directory: "CACHE" }).catch(() => {});
+  }
+  return true;
+}
+
 export async function shareRecording(record) {
   const ext = extensionFor(record.mimeType);
   const fileName = `SwarPractice-${record.createdAt.slice(0, 10)}.${ext}`;
+
+  try {
+    if (await shareRecordingNatively(record, fileName)) {
+      return "shared";
+    }
+  } catch (err) {
+    if (err?.name === "AbortError" || err?.code === "USER_CANCELLED") throw err;
+  }
 
   const file = new File(
     [record.blob],
@@ -86,8 +146,6 @@ export async function shareRecording(record) {
       return "shared";
     } catch (err) {
       if (err?.name === "AbortError") throw err;
-      // Some browsers expose file sharing but reject individual audio formats.
-      // Downloading the recording keeps the user's action useful.
     }
   }
 
