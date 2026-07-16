@@ -10,6 +10,7 @@ const rootPages = [
   "index.html",
   "privacy.html",
   "support.html",
+  "sw.js",
 ];
 
 const staticEntries = [

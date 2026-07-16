@@ -4,6 +4,7 @@ import { $ } from "./shared.js";
 import { autoCorrelate } from "./pitch/detect.js";
 import { PitchStabilizer, formatSaptakLabel, midiName, midiToFreq } from "./pitch/stabilizer.js";
 import { FMIN, FMAX, applyVocalOctaveCorrection } from "./pitch/constants.js";
+import { deleteRecording, listRecordings, saveRecording, shareRecording } from "./recordings.js";
 
 const SWARAS = [
   { idx: 0, letter: "Sa", variant: "shuddha", label: "Sa", desc: "Shadja" },
@@ -58,8 +59,12 @@ const TAALS = {
 };
 
 const TANPURA_BASE_URL = "https://assets.swarsaathi.com";
+const TANPURA_LOCAL_BASE_URL = "/static/audio/tanpura-optimized";
+const PREFS_KEY = "swarsaathi:practice-prefs:v1.2";
+const MIC_CONSENT_KEY = "swarsaathi:mic-consent:v1.2";
 
-const TANPURA_FILES = {
+/** @type {Record<string, Record<number, string>>} */
+let TANPURA_FILES = {
   "Sa-Pa": {
     33: "A1.mp3",
     42: "F-sharp2.mp3", 43: "G2.mp3", 44: "G-sharp2.mp3", 45: "A2.mp3", 46: "A-sharp2.mp3", 47: "B2.mp3",
@@ -70,6 +75,88 @@ const TANPURA_FILES = {
     48: "C3.mp3", 49: "C-sharp3.mp3", 50: "D3.mp3", 51: "D-sharp3.mp3", 52: "E3.mp3",
   },
 };
+
+/** @type {Set<string>} */
+let TANPURA_LOCAL = new Set();
+
+async function loadTanpuraManifest() {
+  try {
+    const response = await fetch(`${TANPURA_LOCAL_BASE_URL}/manifest.json`, { cache: "no-cache" });
+    if (!response.ok) return;
+    const manifest = await response.json();
+    const next = { "Sa-Pa": {}, "Sa-ma": {} };
+    const local = new Set();
+    for (const asset of manifest.assets || []) {
+      const mode = asset.mode;
+      const midi = Number(asset.midi);
+      if (!next[mode] || !Number.isFinite(midi)) continue;
+      const remoteName = String(asset.filename || "").replace(/\.m4a$/i, ".mp3");
+      next[mode][midi] = remoteName;
+      local.add(`${mode}/${midi}`);
+    }
+    if (Object.keys(next["Sa-Pa"]).length || Object.keys(next["Sa-ma"]).length) {
+      TANPURA_FILES = next;
+      TANPURA_LOCAL = local;
+      updatePitchAvailability();
+    }
+  } catch (_err) {
+    // Keep static fallback map if the optimized manifest is unavailable.
+  }
+}
+
+function savePracticePrefs() {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({
+      saMidi,
+      sessionMode,
+      sessionSec,
+      tanpuraMode: tanpuraMode(),
+      strictness,
+      sensitivity,
+      recordSession: Boolean($("m-record-session")?.checked),
+    }));
+  } catch (_err) { /* ignore quota / private mode */ }
+}
+
+function restorePracticePrefs() {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    if (!raw) return;
+    const prefs = JSON.parse(raw);
+    if (Number.isFinite(prefs.saMidi)) {
+      saMidi = prefs.saMidi;
+      const sel = $("m-sa");
+      if (sel) sel.value = String(saMidi);
+    }
+    if (prefs.tanpuraMode && tanpuraModeSelect) tanpuraModeSelect.value = prefs.tanpuraMode;
+    if (prefs.strictness) {
+      strictness = prefs.strictness;
+      const strict = $("m-strict");
+      if (strict) strict.value = prefs.strictness;
+    }
+    if (Number.isFinite(prefs.sensitivity)) {
+      sensitivity = prefs.sensitivity;
+      const range = $("m-sensitivity");
+      if (range) range.value = String(prefs.sensitivity);
+    }
+    if (prefs.sessionMode === "free" || prefs.sessionMode === "timed") {
+      sessionMode = prefs.sessionMode;
+      sessionSec = sessionMode === "free" ? 0 : (Number(prefs.sessionSec) || 5);
+      $("m-duration")?.querySelectorAll(".chip").forEach((chip) => {
+        const isFree = chip.dataset.mode === "free";
+        const match = sessionMode === "free"
+          ? isFree
+          : !isFree && Number(chip.dataset.sec) === sessionSec;
+        chip.classList.toggle("active", match);
+      });
+    }
+    if (typeof prefs.recordSession === "boolean" && $("m-record-session")) {
+      $("m-record-session").checked = prefs.recordSession;
+    }
+    $("m-live-stat").textContent = formatReadyStat();
+    updatePitchAvailability();
+  } catch (_err) { /* ignore corrupt prefs */ }
+}
 
 let saMidi = SA_MIDI_DEFAULT;
 let strictness = "intermediate";
@@ -102,8 +189,12 @@ let rafId = null;
 let stabilizer = null;
 let droneNodes = null;
 let tanpuraAudio = null;
+let referenceNodes = null;
 let metronomeTimer = null;
 let metronomeBeat = 0;
+let sessionRecorder = null;
+let sessionRecordingChunks = [];
+let sessionRecordingStartedAt = 0;
 let inited = false;
 
 let noiseFloor = ABS_MIN_RMS;
@@ -117,7 +208,7 @@ let lastRender = null;
 let waveCanvas, waveCtx, summaryCanvas, summaryCtx;
 let milapView;
 let droneToggle;
-let tanpuraToggle, tanpuraModeSelect, metronomeToggle, taalSelect, bpmInput, bpmValue, tablaToggle, panelPractice, panelAccomp, accompBar, accompSummary;
+let tanpuraToggle, tanpuraModeSelect, metronomeToggle, taalSelect, bpmInput, bpmValue, tablaToggle, panelPractice, panelAccomp, panelRecordings, accompBar, accompSummary;
 let octaveToggle;
 
 function isContinuousSession() {
@@ -290,6 +381,7 @@ export function init() {
   accompSummary = $("m-accomp-summary");
   panelPractice = $("m-panel-practice");
   panelAccomp = $("m-panel-accomp");
+  panelRecordings = $("m-panel-recordings");
   octaveToggle = $("m-octave-correct");
   lowerMicOctave = octaveToggle?.checked ?? false;
 
@@ -299,15 +391,22 @@ export function init() {
   buildTargetGrid();
   targetMode = "any";
   updateTargetUi();
+  restorePracticePrefs();
+  stabilizer?.setSaMidi(saMidi);
   bindEvents();
   renderIdle();
   drawWave(waveCtx, waveCanvas, [], getTolerance());
+  updateReferenceUi();
+  renderRecordings();
+  initOnboarding();
+  loadTanpuraManifest();
 }
 
 export function suspend() {
-  stopListening();
+  stopListening({ saveRecording: false });
   stopDrone();
   stopTanpura();
+  stopReferenceNote();
   stopMetronome();
   if (droneToggle) droneToggle.checked = false;
   if (tanpuraToggle) tanpuraToggle.checked = false;
@@ -397,16 +496,22 @@ function updateTargetUi() {
       && parseInt(cell.dataset.octave, 10) === targetOctave;
     cell.classList.toggle("active", on);
   });
+  updateReferenceUi();
 }
 
 function setMilapPanel(target) {
   const isAccomp = target === "accomp";
+  const isRecordings = target === "recordings";
   document.querySelectorAll("[data-m-panel]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.mPanel === target);
+    if (btn.dataset.mPanel === target) btn.setAttribute("aria-current", "page");
+    else btn.removeAttribute("aria-current");
   });
-  if (panelPractice) panelPractice.hidden = isAccomp;
+  if (panelPractice) panelPractice.hidden = target !== "practice";
   if (panelAccomp) panelAccomp.hidden = !isAccomp;
+  if (panelRecordings) panelRecordings.hidden = !isRecordings;
   milapView?.classList.toggle("accomp-mode", isAccomp);
+  milapView?.classList.toggle("recordings-mode", isRecordings);
   ensureSupportedTanpuraPitch({ announce: isAccomp });
   updatePitchAvailability();
   if (isAccomp) {
@@ -414,6 +519,10 @@ function setMilapPanel(target) {
     if (!tanpuraToggle?.checked && !metronomeToggle?.checked) {
       $("m-status").textContent = "Accompaniment mode — set tanpura, metronome, cycle, and BPM.";
     }
+  } else if (isRecordings) {
+    closeTargetSheet();
+    $("m-status").textContent = "Recordings are stored only on this device.";
+    renderRecordings();
   } else {
     $("m-status").textContent = formatReadyStat();
   }
@@ -431,6 +540,7 @@ function openTargetSheet() {
 }
 
 function selectTarget(swaraIdx, octave) {
+  stopReferenceNote();
   if (swaraIdx === "any") targetMode = "any";
   else {
     targetMode = "swara";
@@ -622,6 +732,272 @@ function recordWaveSample(elapsed, cents, tol) {
   sessionSamples.push({ t: elapsed, cents, visualCents: displayWaveCents, inTune });
 }
 
+function updateReferenceUi() {
+  const button = $("m-reference");
+  const description = $("m-reference-description");
+  if (!button || !description) return;
+  const available = targetMode === "swara";
+  button.disabled = !available;
+  description.textContent = available
+    ? `${formatTargetLabel()} · ${midiName(saMidi + targetSwaraIdx + targetOctave * 12)}`
+    : "Choose a target note above to hear a clear sustained guide.";
+  $("m-reference-label").textContent = referenceNodes ? "Stop note" : "Play note";
+  button.classList.toggle("playing", Boolean(referenceNodes));
+}
+
+async function startReferenceNote() {
+  if (targetMode !== "swara") return;
+  stopReferenceNote();
+  if (tanpuraToggle?.checked) tanpuraToggle.checked = false;
+  stopTanpura();
+
+  const ctx = ensureContext();
+  if (ctx.state === "suspended") await ctx.resume();
+  const midi = saMidi + targetSwaraIdx + targetOctave * 12;
+  const frequency = midiToFreq(midi);
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, ctx.currentTime);
+  master.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.08);
+  master.connect(ctx.destination);
+
+  const harmonics = [
+    { multiple: 1, level: 0.7, type: "sine" },
+    { multiple: 2, level: 0.2, type: "sine" },
+    { multiple: 3, level: 0.1, type: "triangle" },
+  ];
+  const oscillators = harmonics.map(({ multiple, level, type }) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = frequency * multiple;
+    gain.gain.value = level;
+    osc.connect(gain).connect(master);
+    osc.start();
+    return osc;
+  });
+
+  referenceNodes = { master, oscillators };
+  $("m-status").textContent = `Reference note playing · ${formatTargetLabel()} · ${midiName(midi)}`;
+  updateReferenceUi();
+  updateAccompanimentUi();
+}
+
+function stopReferenceNote() {
+  if (!referenceNodes || !audioCtx) return;
+  const { master, oscillators } = referenceNodes;
+  const now = audioCtx.currentTime;
+  master.gain.cancelScheduledValues(now);
+  master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), now);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+  oscillators.forEach((osc) => osc.stop(now + 0.06));
+  referenceNodes = null;
+  updateReferenceUi();
+  updateAccompanimentUi();
+}
+
+function preferredRecordingMimeType() {
+  if (!window.MediaRecorder) return "";
+  return [
+    "audio/mp4",
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+  ].find((type) => MediaRecorder.isTypeSupported?.(type)) || "";
+}
+
+function startSessionRecording() {
+  if (!$("m-record-session")?.checked || !micStream || !window.MediaRecorder) return;
+  sessionRecordingChunks = [];
+  sessionRecordingStartedAt = performance.now();
+  const mimeType = preferredRecordingMimeType();
+  sessionRecorder = new MediaRecorder(micStream, mimeType ? { mimeType } : undefined);
+  sessionRecorder.addEventListener("dataavailable", (event) => {
+    if (event.data?.size) sessionRecordingChunks.push(event.data);
+  });
+  sessionRecorder.start(500);
+  updateRecordingIndicator(true);
+}
+
+function updateRecordingIndicator(active) {
+  const badge = $("m-recording-badge");
+  if (!badge) return;
+  badge.hidden = !active;
+  milapView?.classList.toggle("is-recording", Boolean(active));
+}
+
+function stopSessionRecording({ save = true, durationSec = 0 } = {}) {
+  const recorder = sessionRecorder;
+  updateRecordingIndicator(false);
+  if (!recorder) return Promise.resolve();
+  sessionRecorder = null;
+  return new Promise((resolve) => {
+    recorder.addEventListener("stop", async () => {
+      try {
+        if (save && sessionRecordingChunks.length) {
+          const blob = new Blob(sessionRecordingChunks, {
+            type: recorder.mimeType || sessionRecordingChunks[0].type || "audio/webm",
+          });
+          await saveRecording({
+            blob,
+            title: `${formatTargetLabel()} practice`,
+            durationSec: durationSec || (performance.now() - sessionRecordingStartedAt) / 1000,
+            target: formatTargetLabel(),
+            sa: midiName(saMidi),
+          });
+          $("m-status").textContent = "Session complete · recording saved on this device.";
+          await renderRecordings();
+        }
+      } catch (_err) {
+        $("m-status").textContent = "Session complete, but this device could not save the recording.";
+      } finally {
+        sessionRecordingChunks = [];
+        resolve();
+      }
+    }, { once: true });
+    if (recorder.state !== "inactive") recorder.stop();
+    else resolve();
+  });
+}
+
+function formatRecordingDate(iso) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+async function renderRecordings() {
+  const container = $("m-recordings-list");
+  if (!container) return;
+  try {
+    const records = await listRecordings();
+    container.replaceChildren();
+    if (!records.length) {
+      const empty = document.createElement("div");
+      empty.className = "recordings-empty";
+      const title = document.createElement("strong");
+      title.textContent = "No recordings yet";
+      const copy = document.createElement("p");
+      copy.textContent = "Turn on “Record this session”, then complete a practice session.";
+      empty.append(title, copy);
+      container.append(empty);
+      return;
+    }
+
+    records.forEach((record) => {
+      const item = document.createElement("article");
+      item.className = "recording-item";
+      const copy = document.createElement("div");
+      copy.className = "recording-copy";
+      const title = document.createElement("strong");
+      title.textContent = record.target;
+      const meta = document.createElement("span");
+      meta.textContent = `${record.sa} · ${record.durationSec}s · ${formatRecordingDate(record.createdAt)}`;
+      copy.append(title, meta);
+
+      const audio = document.createElement("audio");
+      const url = URL.createObjectURL(record.blob);
+      audio.controls = true;
+      audio.preload = "metadata";
+      audio.src = url;
+      audio.addEventListener("emptied", () => URL.revokeObjectURL(url), { once: true });
+
+      const actions = document.createElement("div");
+      actions.className = "recording-actions";
+      const share = document.createElement("button");
+      share.type = "button";
+      share.textContent = "Share";
+      share.addEventListener("click", async () => {
+        share.disabled = true;
+        try {
+          const result = await shareRecording(record);
+          $("m-status").textContent = result === "shared"
+            ? "Recording shared."
+            : "Recording downloaded. Share it from your Downloads or Files app.";
+        } catch (err) {
+          if (err?.name !== "AbortError") {
+            $("m-status").textContent = "This recording could not be shared. Please try again.";
+          }
+        } finally {
+          share.disabled = false;
+        }
+      });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "danger";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", async () => {
+        await deleteRecording(record.id);
+        URL.revokeObjectURL(url);
+        renderRecordings();
+      });
+      actions.append(share, remove);
+      item.append(copy, audio, actions);
+      container.append(item);
+    });
+  } catch (_err) {
+    container.textContent = "Recordings are unavailable in this browser's current storage mode.";
+  }
+}
+
+function initOnboarding() {
+  const dialog = $("m-onboarding-dialog");
+  if (!dialog) return;
+  const steps = [
+    {
+      title: "Meet your daily sur companion",
+      copy: "Set Your Pitch, sing a sustained note, and see your swara and steadiness in real time.",
+      symbol: "सा",
+    },
+    {
+      title: "Listen, then match",
+      copy: "Choose a target swara and play its reference note whenever you need an auditory guide.",
+      symbol: "♪",
+    },
+    {
+      title: "Your voice stays yours",
+      copy: "Pitch analysis happens on this device. Audio is saved only when you explicitly record a session.",
+      symbol: "◌",
+    },
+  ];
+  let index = 0;
+
+  const render = () => {
+    const step = steps[index];
+    $("m-onboarding-step").textContent = `${index + 1} of ${steps.length}`;
+    $("m-onboarding-title").textContent = step.title;
+    $("m-onboarding-copy").textContent = step.copy;
+    dialog.querySelector(".onboarding-symbol").textContent = step.symbol;
+    dialog.querySelectorAll(".onboarding-dots span").forEach((dot, i) => dot.classList.toggle("active", i === index));
+    $("m-onboarding-next").textContent = index === steps.length - 1 ? "Start practising" : "Continue";
+  };
+  const close = () => {
+    localStorage.setItem("swarsaathi:onboarding:v1.2", "done");
+    dialog.close();
+  };
+  const open = () => {
+    index = 0;
+    render();
+    dialog.showModal();
+  };
+
+  $("m-onboarding-next").addEventListener("click", () => {
+    if (index >= steps.length - 1) close();
+    else {
+      index += 1;
+      render();
+    }
+  });
+  $("m-onboarding-skip").addEventListener("click", close);
+  $("m-onboarding-replay")?.addEventListener("click", () => {
+    $("m-settings-dialog")?.close();
+    open();
+  });
+  if (localStorage.getItem("swarsaathi:onboarding:v1.2") !== "done") open();
+}
+
 function ensureContext() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === "suspended") audioCtx.resume();
@@ -635,7 +1011,38 @@ function micAudioConstraints() {
   return { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
 }
 
+async function ensureMicConsent() {
+  if (localStorage.getItem(MIC_CONSENT_KEY) === "granted") return true;
+  const dialog = $("m-mic-consent-dialog");
+  if (!dialog?.showModal) {
+    localStorage.setItem(MIC_CONSENT_KEY, "granted");
+    return true;
+  }
+  return new Promise((resolve) => {
+    const allow = $("m-mic-consent-allow");
+    const cancel = $("m-mic-consent-cancel");
+    const finish = (ok) => {
+      allow?.removeEventListener("click", onAllow);
+      cancel?.removeEventListener("click", onCancel);
+      dialog.close();
+      if (ok) localStorage.setItem(MIC_CONSENT_KEY, "granted");
+      resolve(ok);
+    };
+    const onAllow = () => finish(true);
+    const onCancel = () => finish(false);
+    allow?.addEventListener("click", onAllow, { once: true });
+    cancel?.addEventListener("click", onCancel, { once: true });
+    dialog.showModal();
+  });
+}
+
 async function connectMic() {
+  const allowed = await ensureMicConsent();
+  if (!allowed) {
+    const err = new Error("Microphone consent declined");
+    err.name = "ConsentDeclinedError";
+    throw err;
+  }
   ensureContext();
   if (audioCtx.state === "suspended") await audioCtx.resume();
   micStream = await navigator.mediaDevices.getUserMedia({
@@ -692,6 +1099,7 @@ async function startListening() {
     lastVoiceAt = 0;
     lastDisplayVoiceAt = 0;
     lastMicHintAt = 0;
+    startSessionRecording();
 
     $("m-summary").hidden = true;
     $("m-live").hidden = false;
@@ -704,9 +1112,11 @@ async function startListening() {
 
     loop();
   } catch (err) {
-    $("m-status").textContent = err?.name === "NotAllowedError"
-      ? "Microphone blocked. Allow mic access to use SwarPractice."
-      : "Couldn't access the microphone on this device.";
+    $("m-status").textContent = err?.name === "ConsentDeclinedError"
+      ? "Microphone not enabled. Tap Start listening whenever you are ready."
+      : err?.name === "NotAllowedError"
+        ? "Microphone blocked. Allow mic access in your device or browser settings."
+        : "Couldn't access the microphone on this device.";
   }
 }
 
@@ -719,6 +1129,7 @@ async function resumeListening() {
   }
   try {
     await connectMic();
+    startSessionRecording();
     sessionActive = true;
     sessionPaused = false;
     sessionStart = performance.now() - pausedElapsedSec * 1000;
@@ -734,9 +1145,11 @@ async function resumeListening() {
 
     loop();
   } catch (err) {
-    $("m-status").textContent = err?.name === "NotAllowedError"
-      ? "Microphone blocked. Allow mic access to use SwarPractice."
-      : "Couldn't access the microphone on this device.";
+    $("m-status").textContent = err?.name === "ConsentDeclinedError"
+      ? "Microphone not enabled. Tap Start listening whenever you are ready."
+      : err?.name === "NotAllowedError"
+        ? "Microphone blocked. Allow mic access in your device or browser settings."
+        : "Couldn't access the microphone on this device.";
   }
 }
 
@@ -747,6 +1160,7 @@ function pauseListening() {
   lastListenStopAt = performance.now();
   sessionActive = false;
   sessionPaused = true;
+  void stopSessionRecording({ save: false });
   if (rafId) cancelAnimationFrame(rafId);
   rafId = null;
   disconnectMic();
@@ -766,7 +1180,11 @@ function pauseListening() {
   );
 }
 
-function stopListening() {
+function stopListening({ saveRecording: shouldSaveRecording = false } = {}) {
+  const durationSec = sessionSamples.length
+    ? sessionSamples[sessionSamples.length - 1].t
+    : (sessionStart ? (performance.now() - sessionStart) / 1000 : 0);
+  if (sessionRecorder) void stopSessionRecording({ save: shouldSaveRecording, durationSec });
   warmCalibration = calibrated;
   lastListenStopAt = performance.now();
   sessionActive = false;
@@ -781,10 +1199,15 @@ function stopListening() {
   if ($("m-mic-label")) $("m-mic-label").textContent = "Start listening";
 }
 
-function finishSession() {
-  stopListening();
+async function finishSession() {
+  const durationSec = sessionSamples.length
+    ? sessionSamples[sessionSamples.length - 1].t
+    : (sessionStart ? (performance.now() - sessionStart) / 1000 : 0);
+  const recording = stopSessionRecording({ save: true, durationSec });
+  stopListening({ saveRecording: false });
   $("m-live").hidden = true;
   showSummary();
+  await recording;
 }
 
 function loop() {
@@ -999,19 +1422,30 @@ function tanpuraSrc() {
   return `${base.replace(/\/$/, "")}/tanpura/${encodeURIComponent(mode)}/${encodeURIComponent(file)}`;
 }
 
+function tanpuraSources() {
+  const remote = tanpuraSrc();
+  if (!remote) return [];
+  const file = tanpuraFileFor(saMidi, tanpuraMode());
+  const optimizedFile = file.replace(/\.mp3$/i, ".m4a");
+  const local = `${TANPURA_LOCAL_BASE_URL}/${encodeURIComponent(tanpuraMode())}/${encodeURIComponent(optimizedFile)}`;
+  const hasLocal = TANPURA_LOCAL.has(`${tanpuraMode()}/${saMidi}`) || TANPURA_LOCAL.size === 0;
+  return hasLocal ? [local, remote] : [remote, local];
+}
+
 async function startTanpura() {
+  stopReferenceNote();
   stopTanpura();
   ensureContext();
   if (audioCtx.state === "suspended") await audioCtx.resume();
-  const src = tanpuraSrc();
-  if (!src) {
+  const sources = tanpuraSources();
+  if (!sources.length) {
     if (tanpuraToggle) tanpuraToggle.checked = false;
     $("m-status").textContent = `${midiName(saMidi)} is not available for ${tanpuraMode()} tanpura yet.`;
     updatePitchAvailability();
     updateAccompanimentUi();
     return;
   }
-  tanpuraAudio = new Audio(src);
+  tanpuraAudio = new Audio();
   tanpuraAudio.loop = true;
   tanpuraAudio.preload = "auto";
   tanpuraAudio.volume = 0.42;
@@ -1021,23 +1455,22 @@ async function startTanpura() {
     updatePitchAvailability();
     updateAccompanimentUi();
   }, { once: true });
-  tanpuraAudio.addEventListener("error", () => {
-    if (tanpuraToggle) tanpuraToggle.checked = false;
-    $("m-status").textContent = `Tanpura audio not available for ${midiName(saMidi)} in ${tanpuraMode()}.`;
-    updatePitchAvailability();
-    updateAccompanimentUi();
-  }, { once: true });
-  try {
-    await tanpuraAudio.play();
-  } catch (err) {
-    if (tanpuraToggle) tanpuraToggle.checked = false;
-    updatePitchAvailability();
-    updateAccompanimentUi();
-    const reason = err?.name === "NotAllowedError"
-      ? "Tap Tanpura again after audio permission is allowed."
-      : `Tanpura could not start for ${midiName(saMidi)}.`;
-    $("m-status").textContent = reason;
+  let lastError = null;
+  for (const src of sources) {
+    try {
+      tanpuraAudio.src = src;
+      await tanpuraAudio.play();
+      return;
+    } catch (err) {
+      lastError = err;
+    }
   }
+  if (tanpuraToggle) tanpuraToggle.checked = false;
+  updatePitchAvailability();
+  updateAccompanimentUi();
+  $("m-status").textContent = lastError?.name === "NotAllowedError"
+    ? "Tap Tanpura again after audio permission is allowed."
+    : `Tanpura could not start for ${midiName(saMidi)}. Check your connection.`;
 }
 
 function stopTanpura() {
@@ -1093,11 +1526,13 @@ function stopMetronome() {
 function updateAccompanimentUi() {
   const tanpuraOn = Boolean(tanpuraToggle?.checked && tanpuraAudio);
   const metroOn = Boolean(metronomeToggle?.checked && metronomeTimer);
-  const active = tanpuraOn || metroOn;
+  const referenceOn = Boolean(referenceNodes);
+  const active = tanpuraOn || metroOn || referenceOn;
   if (accompSummary) {
     const parts = [];
     if (tanpuraOn) parts.push(`Tanpura ${tanpuraMode()} · ${midiName(saMidi)}`);
     if (metroOn) parts.push(`${TAALS[taalSelect?.value || "teentaal"].label} · ${metronomeBpm()} BPM`);
+    if (referenceOn) parts.push(`Reference · ${formatTargetLabel()}`);
     accompSummary.textContent = parts.join(" · ") || "Accompaniment";
   }
   if (accompBar) {
@@ -1108,12 +1543,14 @@ function updateAccompanimentUi() {
 
 function bindEvents() {
   $("m-sa").addEventListener("change", (e) => {
+    stopReferenceNote();
     saMidi = parseInt(e.target.value, 10);
     stabilizer?.setSaMidi(saMidi);
     resetPitchState();
     updatePitchAvailability();
     if (tanpuraToggle?.checked || droneNodes) startTanpura();
     updateAccompanimentUi();
+    savePracticePrefs();
   });
 
   $("m-target-trigger").addEventListener("click", (e) => {
@@ -1137,14 +1574,21 @@ function bindEvents() {
       sessionMode = chip.dataset.mode === "free" ? "free" : "timed";
       sessionSec = sessionMode === "free" ? 0 : parseInt(chip.dataset.sec, 10);
       $("m-live-stat").textContent = formatReadyStat();
+      savePracticePrefs();
     });
   });
 
-  $("m-strict").addEventListener("change", (e) => { strictness = e.target.value; });
+  $("m-strict").addEventListener("change", (e) => {
+    strictness = e.target.value;
+    savePracticePrefs();
+  });
 
   $("m-sensitivity").addEventListener("input", (e) => {
     sensitivity = parseInt(e.target.value, 10);
+    savePracticePrefs();
   });
+
+  $("m-record-session")?.addEventListener("change", () => savePracticePrefs());
 
   $("m-mic").addEventListener("click", () => {
     if (sessionActive) {
@@ -1170,6 +1614,12 @@ function bindEvents() {
   });
 
   $("m-settings")?.addEventListener("click", () => $("m-settings-dialog").showModal());
+  $("m-mobile-more")?.addEventListener("click", () => $("m-settings-dialog").showModal());
+  $("m-reference")?.addEventListener("click", () => {
+    if (referenceNodes) stopReferenceNote();
+    else startReferenceNote();
+  });
+  $("m-recordings-refresh")?.addEventListener("click", renderRecordings);
 
   droneToggle?.addEventListener("change", () => {
     if (droneToggle.checked) startTanpura();
@@ -1194,6 +1644,7 @@ function bindEvents() {
     updatePitchAvailability();
     if (tanpuraToggle?.checked) startTanpura();
     updateAccompanimentUi();
+    savePracticePrefs();
   });
 
   metronomeToggle?.addEventListener("change", () => {

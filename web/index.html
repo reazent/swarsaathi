@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="SwarPractice by SwarSaathi — real-time swara tuner for Indian music learners." />
   <title>SwarPractice — SwarSaathi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/static/css/milap.css" />
 </head>
 <body class="launch-milap">
+  <a class="skip-link" href="#view-milap">Skip to practice</a>
   <div class="ambient" aria-hidden="true">
     <span class="orb orb-a"></span>
     <span class="orb orb-b"></span>
@@ -192,11 +193,26 @@
       <section id="view-milap" class="view milap-view" data-view="milap">
         <header class="view-head">
           <div class="milap-title-row">
-            <h2 class="view-title">SwarPractice</h2>
+            <div>
+              <span class="milap-product-label">Daily riyaz</span>
+              <h2 class="view-title">SwarPractice</h2>
+            </div>
             <button type="button" class="milap-settings-btn" id="m-settings" aria-label="Open SwarPractice settings">Settings</button>
           </div>
           <p class="view-sub">Hold your sur steady — see your swara in real time, one session at a time.</p>
         </header>
+
+        <nav class="milap-destination-nav" aria-label="SwarPractice sections">
+          <button type="button" class="active" data-m-panel="practice" aria-current="page">
+            <span>Practice</span><small>Sing &amp; see</small>
+          </button>
+          <button type="button" data-m-panel="accomp">
+            <span>Accompaniment</span><small>Set the room</small>
+          </button>
+          <button type="button" data-m-panel="recordings">
+            <span>Recordings</span><small>Review locally</small>
+          </button>
+        </nav>
 
         <section class="panel milap-top-controls">
           <div class="control-row">
@@ -333,6 +349,17 @@
           </div>
 
           <div id="m-panel-practice" class="milap-control-panel">
+            <section class="reference-note-card" aria-labelledby="m-reference-title">
+              <div>
+                <span class="chip-label">Listen before you sing</span>
+                <strong id="m-reference-title">Reference note</strong>
+                <p id="m-reference-description">Choose a target note above to hear a clear sustained guide.</p>
+              </div>
+              <button type="button" class="reference-note-btn" id="m-reference" disabled>
+                <span aria-hidden="true">▶</span>
+                <span id="m-reference-label">Play note</span>
+              </button>
+            </section>
             <div class="compact-controls">
               <div class="control-field compact">
                 <label for="m-strict">Strictness</label>
@@ -347,6 +374,17 @@
                 <input type="range" id="m-sensitivity" min="1" max="5" value="3" />
               </div>
             </div>
+            <label class="record-session-option">
+              <input type="checkbox" id="m-record-session" />
+              <span>
+                <strong>Record this session</strong>
+                <small>Microphone only · saved on this device · never uploaded by SwarSaathi</small>
+              </span>
+            </label>
+            <p id="m-recording-badge" class="recording-badge" hidden aria-live="polite">
+              <span class="recording-dot" aria-hidden="true"></span>
+              Recording on this device
+            </p>
             <button type="button" class="mic-btn milap-mic-btn" id="m-mic">
               <span class="mic-dot" aria-hidden="true"></span>
               <span id="m-mic-label">Start listening</span>
@@ -389,7 +427,51 @@
               </div>
             </div>
           </div>
+
+          <div id="m-panel-recordings" class="milap-control-panel recordings-panel" hidden>
+            <div class="recordings-head">
+              <div>
+                <span class="chip-label">Private by default</span>
+                <h3>Your recordings</h3>
+                <p>Practice recordings stay on this device until you share or delete them.</p>
+              </div>
+              <button type="button" class="btn-ghost" id="m-recordings-refresh">Refresh</button>
+            </div>
+            <div id="m-recordings-list" class="recordings-list" aria-live="polite">
+              <div class="recordings-empty">
+                <strong>No recordings yet</strong>
+                <p>Turn on “Record this session”, then complete a practice session.</p>
+              </div>
+            </div>
+          </div>
         </section>
+
+        <nav class="milap-mobile-nav" aria-label="SwarPractice">
+          <button type="button" class="active" data-m-panel="practice" aria-current="page">
+            <span class="mobile-nav-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 1 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
+            </span>
+            <span>Practice</span>
+          </button>
+          <button type="button" data-m-panel="accomp">
+            <span class="mobile-nav-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </span>
+            <span>Sound</span>
+          </button>
+          <button type="button" data-m-panel="recordings">
+            <span class="mobile-nav-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+            </span>
+            <span>Recordings</span>
+          </button>
+          <button type="button" id="m-mobile-more">
+            <span class="mobile-nav-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>
+            </span>
+            <span>More</span>
+          </button>
+        </nav>
       </section>
 
       <!-- ===================== RIYAZ (legacy — hidden at launch) ===================== -->
@@ -509,8 +591,37 @@
     <form method="dialog">
       <h3>Settings</h3>
       <label class="check"><input type="checkbox" id="m-octave-correct" /> Speaker-test octave correction</label>
+      <p class="settings-privacy">Live pitch analysis stays on this device. Session audio is saved only when you select “Record this session”.</p>
+      <button type="button" class="btn-ghost onboarding-replay" id="m-onboarding-replay">Replay introduction</button>
       <button type="submit" class="btn-secondary">Done</button>
     </form>
+  </dialog>
+
+  <dialog class="onboarding-dialog" id="m-mic-consent-dialog" aria-labelledby="m-mic-consent-title">
+    <div class="onboarding-card">
+      <p class="onboarding-step">Microphone</p>
+      <div class="onboarding-symbol" aria-hidden="true">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 1 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
+      </div>
+      <h2 id="m-mic-consent-title">Why SwarPractice needs the microphone</h2>
+      <p id="m-mic-consent-copy">Live pitch analysis happens on this device. SwarSaathi does not upload your voice. If you turn on recording, audio is saved locally until you share or delete it.</p>
+      <div class="consent-actions">
+        <button type="button" class="btn-ghost" id="m-mic-consent-cancel">Not now</button>
+        <button type="button" class="onboarding-next" id="m-mic-consent-allow">Continue</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="onboarding-dialog" id="m-onboarding-dialog" aria-labelledby="m-onboarding-title">
+    <div class="onboarding-card">
+      <button type="button" class="onboarding-skip" id="m-onboarding-skip">Skip</button>
+      <p class="onboarding-step" id="m-onboarding-step">1 of 3</p>
+      <div class="onboarding-symbol" aria-hidden="true">सा</div>
+      <h2 id="m-onboarding-title">Meet your daily sur companion</h2>
+      <p id="m-onboarding-copy">Set Your Pitch, sing a sustained note, and see your swara and steadiness in real time.</p>
+      <div class="onboarding-dots" aria-hidden="true"><span class="active"></span><span></span><span></span></div>
+      <button type="button" class="onboarding-next" id="m-onboarding-next">Continue</button>
+    </div>
   </dialog>
 
   <div id="upgrade-modal" class="modal" hidden>
@@ -520,14 +631,14 @@
       <h2 id="upgrade-title" class="modal-title">Unlock the full studio</h2>
       <ul class="modal-perks">
         <li><strong>Unlimited</strong> song pitch lookups</li>
-        <li>Analyze <strong>your own recordings</strong></li>
+        <li>Analyze <strong>your own song files</strong> for Sa</li>
         <li>Transpose &amp; best-Sa-for-your-voice</li>
-        <li>SwarPractice: session recording, drills &amp; progress tracking</li>
+        <li>SwarPractice: cloud sync, drills &amp; progress tracking</li>
         <li>Raag: Dadra, Rupak &amp; more taals</li>
-        <li>Tanpura &amp; shruti-box drones · offline · no ads</li>
+        <li>Offline library packs · no ads</li>
       </ul>
       <button type="button" class="modal-cta" data-upgrade-cta>Coming soon</button>
-      <p class="modal-fineprint">Billing isn't live yet — this is a preview of what Pro includes.</p>
+      <p class="modal-fineprint">Local session recording is already available in free SwarPractice. Billing is not live yet.</p>
     </div>
   </div>
 

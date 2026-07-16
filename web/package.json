@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build:mobile": "node scripts/build-mobile.mjs",
+    "build:site": "node scripts/build-site.mjs",
+    "prepare:tanpura": "node ../scripts/prepare-tanpura-loops.mjs",
     "cap:sync": "npm run build:mobile && cap sync",
     "cap:open:ios": "cap open ios",
     "cap:open:android": "cap open android",

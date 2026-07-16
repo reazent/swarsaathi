@@ -3,262 +3,135 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="SwarSaathi is an Indian music learning companion with SwarPractice for swara practice, tanpura and rhythm support, and upcoming song-aware learning tools." />
-  <title>SwarSaathi | Your companion for sur &amp; swaras</title>
+  <meta name="description" content="SwarSaathi helps Indian music learners sing, see their swara in real time, and improve with calm, accurate practice tools." />
+  <title>SwarSaathi | Calm, accurate Indian music practice</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
-    <a class="brand" href="#top" aria-label="SwarSaathi home">
-      <span class="brand-mark" aria-hidden="true">Sa</span>
-      <span>
-        <strong>SwarSaathi</strong>
-        <small>Your companion for sur &amp; swaras</small>
-      </span>
+    <a class="brand" href="./index.html" aria-label="SwarSaathi home">
+      <span class="brand-mark" aria-hidden="true">सा</span>
+      <span><strong>SwarSaathi</strong><small>Your companion for sur &amp; swaras</small></span>
     </a>
     <nav class="nav" aria-label="Primary navigation">
+      <a aria-current="page" href="./index.html">Home</a>
+      <a href="#learn">Learn</a>
       <a href="#products">Products</a>
-      <a href="#swarpractice">SwarPractice</a>
-      <a href="./practice/">Practice now</a>
-      <a href="#learners">For Learners</a>
-      <a href="#roadmap">Roadmap</a>
-      <a href="#partnerships">Partnerships</a>
-      <a href="/support.html" data-ios-app-link data-ready-label="iOS app" data-pending-label="iOS app soon">iOS app soon</a>
-      <a class="nav-cta" href="./support.html">Support</a>
+      <a href="./practice/">Practice</a>
+      <a href="./about.html">About</a>
+      <a class="nav-cta" href="./practice/">Start practicing</a>
     </nav>
   </header>
 
-  <main id="top">
-    <section class="hero hero-product">
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <p class="eyebrow">Indian music learning, reimagined</p>
-        <h1>A calmer way to practice sur, swaras, and song pitch.</h1>
-        <p class="hero-lede">
-          SwarSaathi is a learner-first music companion. Start with SwarPractice for real-time swara feedback,
-          then grow into tanpura-backed riyaz, rhythm support, and song-aware learning tools.
-        </p>
+        <p class="eyebrow">Indian music practice, made clearer</p>
+        <h1 id="hero-title">Sing with confidence. See every swara.</h1>
+        <p class="hero-lede">SwarPractice listens as you sing and shows the swara, accuracy, and steadiness in real time—so daily riyaz feels focused, private, and calm.</p>
         <div class="hero-actions">
-          <a class="btn primary" href="./practice/">Open SwarPractice Web App</a>
-          <a class="btn secondary" href="/support.html" data-ios-app-link data-ready-label="Download iOS App" data-pending-label="iOS App Store link soon">iOS App Store link soon</a>
-          <a class="btn secondary" href="#products">View the product family</a>
-        </div>
-      </div>
-
-      <div class="hero-card" aria-label="SwarPractice product preview">
-        <div class="phone-frame premium-phone">
-          <div class="phone-top"></div>
-          <div class="app-preview">
-            <span class="preview-label">SwarPractice</span>
-            <div class="preview-tabs"><span>Riyaz</span><span>Accompaniment</span></div>
-            <div class="swara-display">Sa</div>
-            <p>Your Pitch · C3 · steady band</p>
-            <div class="wave" aria-hidden="true">
-              <span></span><span></span><span></span><span></span><span></span>
-            </div>
-            <div class="preview-pill">Tanpura · Sa-Pa · Teentaal 80 BPM</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="trust-strip" aria-label="Current status">
-      <div class="trust-item">
-        <strong>Available first</strong>
-        <p class="trust-item-detail">SwarPractice real-time swara tuner</p>
-      </div>
-      <div class="trust-item">
-        <strong>Private by design</strong>
-        <p class="trust-item-detail">Microphone analysis without uploading voice</p>
-      </div>
-      <div class="trust-item">
-        <strong>Practice-ready</strong>
-        <p class="trust-item-detail">Tanpura, metronome, and guided pitch feedback</p>
-      </div>
-      <div class="trust-item trust-item-ios">
-        <strong data-release-channel>iOS App Store</strong>
-        <p class="trust-item-detail trust-release-meta">
-          <span data-release-version>v1.1 (4)</span><span class="trust-meta-sep" aria-hidden="true"> · </span><span data-release-status>Live on App Store</span>
-        </p>
-        <a class="app-store-badge-link" href="https://apps.apple.com/app/id6781765064" data-ios-app-link aria-label="Download on the App Store">
-          <img class="app-store-badge" src="/static/assets/download-on-app-store.svg" alt="" width="120" height="40" decoding="async" />
-        </a>
-      </div>
-    </section>
-
-    <section id="products" class="section">
-      <div class="section-head wide-head">
-        <p class="eyebrow">Product family</p>
-        <h2>One companion, multiple practice moments.</h2>
-        <p>
-          SwarSaathi is designed as a family of focused tools. Each product solves one musical job clearly,
-          while sharing pitch, swara, taal, and practice context across the learning journey.
-        </p>
-      </div>
-      <div class="cards three product-cards">
-        <article class="card product-card live">
-          <span class="card-kicker">Live first</span>
-          <h3>SwarPractice</h3>
-          <p>
-            Set Your Pitch, sing swaras in real time, see accuracy and steadiness, and practice with tanpura or rhythm support.
-          </p>
-          <a class="card-link" href="./practice/">Practice in browser</a>
-          <a class="card-link ios-card-link" href="/support.html" data-ios-app-link data-ready-label="Open iOS App Store listing" data-pending-label="iOS listing coming soon">iOS listing coming soon</a>
-        </article>
-        <article class="card product-card accent">
-          <span class="card-kicker">Coming next</span>
-          <h3>SurLens</h3>
-          <p>
-            Listen to a song from user-controlled playback, estimate its home Sa, and move directly into practice at that pitch.
-          </p>
-        </article>
-        <article class="card product-card">
-          <span class="card-kicker">In exploration</span>
-          <h3>SwarPath</h3>
-          <p>
-            Turn familiar melodies into learner-friendly swara guidance, phrase practice, and rhythm-aware study tools.
-          </p>
-        </article>
-      </div>
-    </section>
-
-    <section id="swarpractice" class="section split feature-section">
-      <div>
-        <p class="eyebrow">SwarPractice</p>
-        <h2>Built for the daily act of holding sur.</h2>
-      </div>
-      <div class="section-copy">
-        <p>
-          SwarPractice gives learners a simple feedback loop: choose a pitch, sing, see the swara, and understand whether the note is accurate and steady.
-        </p>
-        <p>
-          The web app is available now for desktop and mobile browsers. Use headphones if tanpura or metronome is enabled so accompaniment does not bleed into the microphone.
-        </p>
-        <a class="btn primary section-cta" href="./practice/">Launch SwarPractice</a>
-        <div class="release-card">
-          <img class="release-app-icon" src="/static/assets/app-icon.svg" alt="" width="64" height="64" decoding="async" />
-          <div class="release-card-copy">
-            <span class="card-kicker">iOS release</span>
-            <strong>SwarSaathi <span data-release-version>v1.1 (4)</span></strong>
-            <p><span data-release-status>Live on App Store</span>. Practice in your browser or download SwarSaathi on iPhone for the same SwarPractice experience.</p>
-          </div>
-        <div class="release-card-actions">
-          <a class="app-store-badge-link" href="https://apps.apple.com/app/id6781765064" data-ios-app-link aria-label="Download on the App Store">
-            <img class="app-store-badge" src="/static/assets/download-on-app-store.svg" alt="" width="135" height="45" decoding="async" />
+          <a class="btn primary" href="./practice/">Start practicing</a>
+          <a class="app-store-badge-link" href="https://apps.apple.com/app/id6781765064" data-ios-app-link aria-label="Download SwarSaathi on the App Store">
+            <img class="app-store-badge" src="/static/assets/download-on-app-store.svg" alt="Download on the App Store" width="135" height="45" decoding="async" />
           </a>
         </div>
+        <p class="hero-note">Available in your browser and on iPhone. Microphone audio is analysed on your device.</p>
+      </div>
+
+      <div class="product-proof" aria-label="SwarPractice preview">
+        <div class="preview-toolbar">
+          <span>SwarPractice</span>
+          <span class="status status-available">Available</span>
         </div>
-        <div class="feature-grid compact-feature-grid">
-          <div>
-            <strong>Riyaz mode</strong>
-            <span>Real-time swara, saptak, wave, and session scoring.</span>
-          </div>
-          <div>
-            <strong>Accompaniment mode</strong>
-            <span>Real tanpura loops, metronome, BPM, and taal cycles.</span>
-          </div>
-          <div>
-            <strong>Your Pitch</strong>
-            <span>One pitch selector controls voice, tanpura, and future tabla.</span>
-          </div>
-          <div>
-            <strong>On-device mic</strong>
-            <span>Voice analysis happens on the device for v1.</span>
-          </div>
+        <div class="preview-settings"><span>Your Pitch</span><strong>C3</strong><span>Target note</span><strong>Any</strong></div>
+        <div class="preview-stage">
+          <span class="preview-overline">Detected swara</span>
+          <strong class="preview-swara">Sa</strong>
+          <span class="preview-note">C3 · Madhya</span>
+          <div class="pitch-track" aria-hidden="true"><span></span></div>
+          <p><strong>On pitch</strong><br />Hold the note steady</p>
         </div>
+        <div class="preview-aids"><span>Tanpura off</span><span>Metronome off</span></div>
+        <p class="preview-caption">See your swara and pitch accuracy as you sing.</p>
       </div>
     </section>
 
-    <section id="learners" class="section learner-section">
-      <div class="section-head wide-head">
-        <p class="eyebrow">For learners and teachers</p>
-        <h2>Practice support without musical clutter.</h2>
-        <p>
-          The interface is built to stay calm during singing. Practice mode focuses on swara feedback.
-          Accompaniment mode focuses on the sound environment. Learners can move between both without losing pitch context.
-        </p>
-      </div>
-      <div class="cards three">
-        <article class="card">
-          <h3>Beginners</h3>
-          <p>Use safer pitch choices, clear center bands, and accompaniment that does not accidentally play the wrong tonic.</p>
-        </article>
-        <article class="card">
-          <h3>Students</h3>
-          <p>Build repeatable short drills with accuracy, stability, and pitch-bias feedback after each session.</p>
-        </article>
-        <article class="card">
-          <h3>Teachers</h3>
-          <p>Use SwarPractice as a shared reference for pitch, swara naming, and steadiness during practice assignments.</p>
-        </article>
-      </div>
+    <section class="proof-strip" aria-label="Product trust">
+      <div><strong>On-device listening</strong><span>Live analysis stays on your device; optional recordings are local until you share them.</span></div>
+      <div><strong>Accurate accompaniment</strong><span>Every available sound matches the pitch you selected.</span></div>
+      <div><strong data-release-channel>iOS App Store</strong><span><span data-release-version>v1.1 (4)</span> · <span data-release-status>Live on App Store</span></span></div>
     </section>
 
-    <section id="roadmap" class="section dark-panel">
+    <span id="vision" class="anchor-target" aria-hidden="true"></span>
+    <section id="learn" class="section story-section">
       <div class="section-head">
-        <p class="eyebrow">Roadmap</p>
-        <h2>From single notes to song-aware practice.</h2>
+        <p class="eyebrow">Sing → see → improve</p>
+        <h2>A clear feedback loop for daily riyaz.</h2>
+        <p>No account or setup maze. Choose your Sa, allow the microphone when you are ready, and begin with one note.</p>
       </div>
-      <div class="process-grid">
-        <div class="process-step">
-          <span>01</span>
-          <h3>Hear your note</h3>
-          <p>Real-time swara feedback, pitch tolerance bands, and session review for daily riyaz.</p>
-        </div>
-        <div class="process-step">
-          <span>02</span>
-          <h3>Set the room</h3>
-          <p>Tanpura, metronome, and eventually real tabla loops tied to the same pitch selector.</p>
-        </div>
-        <div class="process-step">
-          <span>03</span>
-          <h3>Find the song's Sa</h3>
-          <p>Mic-based listening estimates first, with partner-backed official audio analysis as the long-term path.</p>
-        </div>
-        <div class="process-step">
-          <span>04</span>
-          <h3>Follow the swaras</h3>
-          <p>Guided notation and phrase practice once pitch confidence and rights are ready.</p>
-        </div>
+      <ol class="steps">
+        <li><span>01</span><div><h3>Set Your Sa</h3><p>Choose the tonic that matches your voice or instrument. This keeps swara names grounded in your practice pitch.</p></div></li>
+        <li><span>02</span><div><h3>Sing and see</h3><p>Watch the detected swara, register, accuracy, and stability while you hold or move between notes.</p></div></li>
+        <li><span>03</span><div><h3>Review and repeat</h3><p>Use the session summary—and optional on-device recordings—to hear less guesswork and make the next repetition intentional.</p></div></li>
+      </ol>
+      <div class="try-card">
+        <div><p class="eyebrow">Try it when you are ready</p><h3>Your microphone stays off until you start.</h3><p>SwarPractice explains why it needs access before the browser asks for permission.</p></div>
+        <a class="btn primary" href="./practice/">Start practicing</a>
       </div>
     </section>
 
-    <section id="partnerships" class="section partner-section">
-      <div class="partner-copy">
-        <p class="eyebrow">Partnerships</p>
-        <h2>Responsible song intelligence needs strong partners.</h2>
-        <p>
-          SwarSaathi is learner-first. Future song intelligence benefits from high-quality metadata, stable IDs,
-          licensed analysis paths, and India-focused music infrastructure partners.
-        </p>
+    <span id="platform" class="anchor-target" aria-hidden="true"></span>
+    <section id="products" class="section tinted-section">
+      <div class="section-head">
+        <p class="eyebrow">SwarSaathi products</p>
+        <h2>One focused tool at a time.</h2>
+        <p>Start with SwarPractice and follow the next steps in the SwarSaathi learning journey.</p>
       </div>
-      <div class="partner-card">
-        <h3>Partnership interests</h3>
-        <ul>
-          <li>Bollywood and regional film catalog metadata</li>
-          <li>Stable track identifiers, preferably ISRC</li>
-          <li>Licensed server-side analysis of official audio</li>
-          <li>Permission to store derived non-audio results such as song pitch / Sa</li>
-          <li>Future rights discussion for notation and practice-backed learning experiences</li>
-        </ul>
-        <a class="btn primary full" href="mailto:partnerships@swarsaathi.com">Start a partnership conversation</a>
+      <span id="swarpractice" class="anchor-target" aria-hidden="true"></span>
+      <div class="cards three">
+        <article class="card featured">
+          <span class="status status-available">Available</span>
+          <h3>SwarPractice</h3>
+          <p>Real-time swara, register, accuracy, and stability feedback with matching tanpura and a generated metronome.</p>
+          <a class="text-link" href="./practice/">Open SwarPractice <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="card">
+          <span class="status status-development">In development</span>
+          <h3>SurLens</h3>
+          <p>Find a recording’s home Sa and move from listening into pitch-aware practice.</p>
+        </article>
+        <article class="card">
+          <span class="status status-planned">Planned</span>
+          <h3>SwarPath</h3>
+          <p>Learn songs phrase by phrase with guided swara practice.</p>
+        </article>
       </div>
+    </section>
+
+    <section class="section pathways-section">
+      <div class="section-head">
+        <p class="eyebrow">Choose your path</p>
+        <h2>Useful in solo practice and shared learning.</h2>
+      </div>
+      <div class="cards two">
+        <article class="path-card"><p class="path-number">01</p><h3>Learners</h3><p>Build steadier sur with immediate, private visual feedback.</p><a class="text-link" href="./practice/">Practice now <span aria-hidden="true">→</span></a></article>
+        <article class="path-card"><p class="path-number">02</p><h3>Teachers</h3><p>Use live feedback during lessons and give learners a clearer reference between classes.</p><a class="text-link" href="./teachers.html">For teachers <span aria-hidden="true">→</span></a></article>
+      </div>
+    </section>
+
+    <span id="partnerships" class="anchor-target" aria-hidden="true"></span>
+    <section class="section business-invite">
+      <div><p class="eyebrow">Work with SwarSaathi</p><h2>Help shape better Indian-music learning experiences.</h2></div>
+      <div><p>We welcome focused conversations with music partners, researchers, conservatories, and institutions.</p><div class="inline-links"><a href="./partners.html">Partners</a><a href="./research.html">Research &amp; Technology</a><a href="./about.html">About</a></div></div>
     </section>
   </main>
 
   <footer class="footer">
-    <div>
-      <strong>SwarSaathi</strong>
-      <p>Indian music learning tools for singers, students, teachers, and enthusiasts.</p>
-    </div>
-    <nav aria-label="Footer navigation">
-      <a href="#products">Products</a>
-      <a href="./practice/">Practice</a>
-      <a href="/support.html" data-ios-app-link data-ready-label="iOS app" data-pending-label="iOS app soon">iOS app soon</a>
-      <a href="#partnerships">Partnerships</a>
-      <a href="./privacy.html">Privacy</a>
-      <a href="./support.html">Support</a>
-      <a href="mailto:partnerships@swarsaathi.com">Contact</a>
-    </nav>
+    <div class="footer-brand"><strong>SwarSaathi</strong><p>Calm, accurate tools for Indian music practice.</p></div>
+    <div><strong>Practice</strong><a href="./practice/">SwarPractice</a><a href="#learn">How it works</a><a href="https://apps.apple.com/app/id6781765064" data-ios-app-link data-ready-label="iOS app" data-pending-label="iOS app soon">iOS app</a></div>
+    <div><strong>For you</strong><a href="./teachers.html">Teachers</a><a href="./partners.html">Partners</a></div>
+    <div><strong>Company</strong><a href="./research.html">Research &amp; Technology</a><a href="./about.html">About</a><a href="./support.html">Support</a><a href="./privacy.html">Privacy</a></div>
   </footer>
   <script src="/release-links.js" defer></script>
 </body>

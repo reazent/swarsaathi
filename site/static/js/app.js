@@ -6,6 +6,14 @@ import * as account from "./account.js";
 /** Set false to restore full SwarSaathi nav (Pitch, Discover, Raag). */
 export const MILAP_LAUNCH = true;
 
+if ("serviceWorker" in navigator && !window.Capacitor) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {
+      // The app remains usable online if service-worker registration is unavailable.
+    });
+  });
+}
+
 const views = {
   milap: document.getElementById("view-milap"),
   pitch: document.getElementById("view-pitch"),
