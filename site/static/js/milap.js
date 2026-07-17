@@ -757,20 +757,20 @@ async function startReferenceNote() {
   if (ctx.state === "suspended") await ctx.resume();
   const midi = saMidi + targetSwaraIdx + targetOctave * 12;
   const frequency = midiToFreq(midi);
-  // Phone speakers need more headroom than MacBook speakers; keep desktop calmer.
+  // Phone speakers need more headroom than laptop speakers; desktop still quieter.
   const targetLevel = isIosNativeShell() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-    ? 0.82
-    : 0.24;
+    ? 1.0
+    : 0.42;
   const master = ctx.createGain();
   master.gain.setValueAtTime(0.0001, ctx.currentTime);
   master.gain.exponentialRampToValueAtTime(targetLevel, ctx.currentTime + 0.08);
   master.connect(ctx.destination);
 
   const harmonics = [
-    { multiple: 1, level: 0.78, type: "sine" },
-    { multiple: 2, level: 0.28, type: "sine" },
-    { multiple: 3, level: 0.14, type: "triangle" },
-    { multiple: 4, level: 0.06, type: "sine" },
+    { multiple: 1, level: 0.92, type: "sine" },
+    { multiple: 2, level: 0.34, type: "sine" },
+    { multiple: 3, level: 0.16, type: "triangle" },
+    { multiple: 4, level: 0.08, type: "sine" },
   ];
   const oscillators = harmonics.map(({ multiple, level, type }) => {
     const osc = ctx.createOscillator();
