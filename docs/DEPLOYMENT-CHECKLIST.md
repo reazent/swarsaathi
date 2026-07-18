@@ -11,7 +11,7 @@ This is the current launch path for **SwarSaathi** / **SwarPractice** after the 
 
 - Website and practice web app for the consumer experience.
 - Capacitor app under `web/` with app id `com.swarsaathi.swarpractice`.
-- iOS project at `web/ios/` targeted at Version `1.2`, Build `5`.
+- iOS project at `web/ios/` targeted at Version `1.2`, Build `7`.
 - Android project at `web/android/` targeted at Version name `1.2`, Version code `1`.
 - Native Share + Filesystem plugins for recording share sheets.
 - Privacy Policy and Support hosted at swarsaathi.com.

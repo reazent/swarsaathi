@@ -10,7 +10,7 @@
 - **Secondary category:** Education
 - **Price:** Free
 - **Age rating:** 4+
-- **Current release:** Version `1.2`, Build `5`
+- **Current release:** Version `1.2`, Build `7`
 
 ## Subtitle
 
