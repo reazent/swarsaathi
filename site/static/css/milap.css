@@ -156,6 +156,9 @@
   color: var(--text-muted);
 }
 .milap-view .saptak-label:empty { min-height: 0; height: 0; margin: 0; overflow: hidden; }
+.milap-view.listening-active .saptak-label:not(:empty) {
+  margin-top: 0.45rem;
+}
 .milap-view .milap-swara-name {
   font-family: var(--font-display); font-size: clamp(3.5rem, 14vw, 5.25rem);
   line-height: 0.95; transition: color 0.15s;
