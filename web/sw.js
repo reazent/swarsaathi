@@ -1,4 +1,4 @@
-const CACHE_VERSION = "swarsaathi-v1.2-12";
+const CACHE_VERSION = "swarsaathi-v1.2-13";
 const CORE = [
   "./",
   "/static/styles.css",

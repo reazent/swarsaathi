@@ -734,7 +734,9 @@ body.launch-milap .sidebar-foot .account { display: none; }
     min-height: 31rem;
     margin: 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    /* Keep swara notation clear of the overlaid session timing strip. */
+    padding-top: 5.75rem;
   }
   .milap-view > .milap-readout .readout-stage { width: 100%; }
   .milap-view > .milap-session-setup,
@@ -743,8 +745,24 @@ body.launch-milap .sidebar-foot .account { display: none; }
   .milap-view > .accomp-mini-bar {
     grid-column: 1;
   }
-  .milap-view > .milap-session-setup { grid-row: 3; align-self: end; z-index: 4; margin: 0 0 0.75rem; }
+  /* Sit near the top of the preview (under status), not over the swara. */
+  .milap-view > .milap-session-setup {
+    grid-row: 2;
+    align-self: start;
+    z-index: 4;
+    margin: 2.55rem 0 0;
+  }
   .milap-view > .milap-status { grid-column: 1; grid-row: 2; align-self: start; z-index: 3; margin-top: 0.85rem; }
+  .milap-view.listening-active > .milap-session-setup {
+    margin-top: 2.35rem;
+    padding: 0.4rem 0.85rem;
+  }
+  .milap-view.listening-active .session-chips {
+    display: none;
+  }
+  .milap-view.listening-active > .milap-readout {
+    padding-top: 4.25rem;
+  }
   .milap-view > .milap-summary { grid-area: main; z-index: 6; align-self: stretch; margin: 0; overflow: auto; }
   .milap-view > .accomp-mini-bar { grid-row: 4; z-index: 6; align-self: start; }
 
@@ -804,12 +822,31 @@ body.launch-milap .sidebar-foot .account { display: none; }
   }
   .milap-view.listening-active .view-head,
   .milap-view.listening-active .milap-top-controls,
-  .milap-view.listening-active .milap-session-setup,
   .milap-view.listening-active .reference-note-card,
   .milap-view.listening-active .compact-controls,
   .milap-view.listening-active .record-session-option,
   .milap-view.listening-active .milap-panel-tabs {
     display: none !important;
+  }
+  /* Compact timing strip above the readout — not over the swara. */
+  .milap-view.listening-active .milap-session-setup {
+    position: sticky;
+    top: max(0.25rem, env(safe-area-inset-top));
+    z-index: 47;
+    margin: 0.2rem 0 0.35rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 14px;
+    background: rgba(12, 8, 24, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  }
+  .milap-view.listening-active .session-chips {
+    display: none !important;
+  }
+  .milap-view.listening-active .milap-session-setup .live-stat {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-soft);
   }
   .milap-view.listening-active .saptak-legend,
   .milap-view.listening-active .wave-legend {
@@ -833,10 +870,9 @@ body.launch-milap .sidebar-foot .account { display: none; }
     min-height: 3.35rem;
   }
   .milap-view.listening-active .milap-status {
-    position: sticky;
-    top: calc(env(safe-area-inset-top) + 0.15rem);
-    z-index: 46;
-    margin: 0.25rem 0 0;
+    position: static;
+    z-index: auto;
+    margin: 0 0 0.35rem;
     text-align: center;
     font-size: 0.78rem;
   }
