@@ -31,7 +31,9 @@ In `web/ios/App/App.xcodeproj`:
 2. Set Team to your Apple Developer team.
 3. Confirm Bundle Identifier is `com.swarsaathi.swarpractice`.
 4. Confirm Version `1.2`, Build `5`.
-5. Run on a real iPhone and test:
+5. Confirm **Signing & Capabilities** includes **Push Notifications** (uses `App/App.entitlements` with `aps-environment`).
+6. In [Apple Developer → Identifiers](https://developer.apple.com/account/resources/identifiers/list), open `com.swarsaathi.swarpractice` and enable **Push Notifications** if it is not already on (required for App Store / in-app update notifications).
+7. Run on a real iPhone and test:
    - microphone consent and permission
    - live pitch detection
    - offline tanpura
