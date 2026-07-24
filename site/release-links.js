@@ -5,7 +5,7 @@
     version: "1.2",
     build: "7",
     channel: "iOS App Store",
-    status: "Preparing App Store release",
+    status: "Live on App Store",
     iosAppUrl: "https://apps.apple.com/app/id6781765064",
     practiceUrl: "/practice/"
   };
