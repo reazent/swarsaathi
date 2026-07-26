@@ -35,8 +35,62 @@
       </p>
     </section>
 
-    <section class="sargam-panel" aria-labelledby="compose-title">
+    <section id="account-panel" class="sargam-panel auth-panel" aria-labelledby="account-title">
+      <div class="auth-panel-head">
+        <h2 id="account-title">Sign in</h2>
+        <p id="auth-lede" class="auth-lede">Use your email. We’ll send a one-time code — no password.</p>
+      </div>
+
+      <div id="signed-in-bar" class="signed-in-bar" hidden>
+        <div>
+          <strong id="signed-in-email">Signed in</strong>
+          <p id="signed-in-credits" class="auth-lede">Ready to generate.</p>
+        </div>
+        <button type="button" class="btn" id="signout-btn">Sign out</button>
+      </div>
+
+      <form id="auth-form" class="auth-form">
+        <ol class="auth-steps" aria-label="Sign-in steps">
+          <li id="step-email" class="auth-step is-active">
+            <div class="step-label"><span class="step-num">1</span> Email</div>
+            <label class="field">
+              <span class="visually-hidden">Email</span>
+              <input id="email" type="email" name="email" autocomplete="email" required placeholder="you@example.com" />
+            </label>
+            <button type="button" class="btn primary" id="send-code-btn">Email me a code</button>
+          </li>
+
+          <li id="step-otp" class="auth-step" hidden>
+            <div class="step-label"><span class="step-num">2</span> Enter code</div>
+            <p id="otp-hint" class="auth-lede">We sent a code to your email. Type it here to finish signing in.</p>
+            <label class="field">
+              <span class="visually-hidden">One-time code</span>
+              <input
+                id="otp"
+                class="otp-input"
+                type="text"
+                name="otp"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="8"
+                placeholder="••••••"
+                spellcheck="false"
+              />
+            </label>
+            <div class="auth-actions">
+              <button type="button" class="btn primary" id="verify-otp-btn">Verify &amp; continue</button>
+              <button type="button" class="btn" id="resend-code-btn">Resend code</button>
+              <button type="button" class="btn linkish" id="change-email-btn">Use a different email</button>
+            </div>
+          </li>
+        </ol>
+        <p id="auth-status" class="sargam-status" role="status"></p>
+      </form>
+    </section>
+
+    <section id="compose-panel" class="sargam-panel" aria-labelledby="compose-title">
       <h2 id="compose-title">Compose</h2>
+      <p id="compose-gate" class="compose-gate">Sign in above to unlock generation and credits.</p>
       <label class="field">
         <span>Prompt</span>
         <textarea id="prompt" rows="4" maxlength="2000" placeholder="A calm afternoon tanpura-like drone with soft tabla pulses and warm harmonium, 72 BPM, meditative"></textarea>
@@ -46,24 +100,8 @@
         <input id="duration" type="number" min="5" max="180" value="30" />
         <small id="cost-hint">Uses about 1 credit per 30 seconds.</small>
       </label>
-      <form id="auth-form" class="auth-form">
-        <label class="field">
-          <span>Email</span>
-          <input id="email" type="email" name="email" autocomplete="email" required placeholder="you@example.com" />
-        </label>
-        <button type="submit" class="btn" id="send-link-btn">Send sign-in code</button>
-        <div id="otp-step" class="otp-step" hidden>
-          <label class="field">
-            <span>Code from email</span>
-            <input id="otp" type="text" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" maxlength="8" placeholder="123456" />
-          </label>
-          <button type="button" class="btn primary" id="verify-otp-btn">Sign in</button>
-        </div>
-      </form>
       <div class="sargam-actions">
         <button type="button" class="btn primary" id="generate-btn">Generate</button>
-        <button type="button" class="btn" id="signin-btn" hidden>Sign in</button>
-        <button type="button" class="btn" id="signout-btn" hidden>Sign out</button>
       </div>
       <p id="status" class="sargam-status" role="status"></p>
       <audio id="player" controls hidden></audio>

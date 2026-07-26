@@ -15,6 +15,7 @@ const API_BASE = defaultApiBase();
 
 const $ = (id) => document.getElementById(id);
 const statusEl = $("status");
+const authStatusEl = $("auth-status");
 const creditChip = $("credit-chip");
 const authChip = $("auth-chip");
 const packsEl = $("packs");
@@ -22,7 +23,14 @@ const player = $("player");
 const emailInput = $("email");
 const otpInput = $("otp");
 const authForm = $("auth-form");
-const otpStep = $("otp-step");
+const accountPanel = $("account-panel");
+const composePanel = $("compose-panel");
+const composeGate = $("compose-gate");
+const stepEmail = $("step-email");
+const stepOtp = $("step-otp");
+const signedInBar = $("signed-in-bar");
+const authLede = $("auth-lede");
+const accountTitle = $("account-title");
 
 let accessToken = localStorage.getItem("sargam_access_token") || "";
 let supabase = null;
@@ -30,10 +38,17 @@ let config = null;
 let me = null;
 let authListenerBound = false;
 let pendingEmail = localStorage.getItem("sargam_pending_email") || "";
+let pendingOtpType = localStorage.getItem("sargam_pending_otp_type") || "";
+let authPhase = "email"; // email | otp | signed_in
 
 function setStatus(msg, isError = false) {
   statusEl.textContent = msg || "";
-  statusEl.style.color = isError ? "#a33" : "";
+  statusEl.classList.toggle("is-error", Boolean(isError && msg));
+}
+
+function setAuthStatus(msg, isError = false) {
+  authStatusEl.textContent = msg || "";
+  authStatusEl.classList.toggle("is-error", Boolean(isError && msg));
 }
 
 function friendlyError(msg, status) {
@@ -50,21 +65,21 @@ function friendlyError(msg, status) {
   if (text.includes("api base") || text.includes("could not reach")) {
     return "Sargam is temporarily unavailable. Please try again later.";
   }
-  if (text.includes("redirect") || text.includes("redirect_to")) {
-    return "Sign-in redirect is not configured yet. Add https://swarsaathi.com/sargam/** in Supabase Auth URL settings.";
+  if (text.includes("wait") && text.includes("another code")) {
+    return msg;
   }
   if (text.includes("rate limit") || text.includes("email rate")) {
-    return "Too many sign-in emails. Wait a few minutes and try again.";
+    return "Too many sign-in emails. Wait a minute and try again.";
   }
   if (
     text.includes("pkce")
     || text.includes("code verifier")
     || text.includes("both auth code and code verifier")
   ) {
-    return "The email link opened in a different browser, so sign-in could not finish. Enter the 6-digit code from the email instead.";
+    return "That email link can’t finish sign-in here. Enter the code from your email instead.";
   }
   if (text.includes("otp") || text.includes("token") || text.includes("invalid") || text.includes("expired")) {
-    return "That code is invalid or expired. Request a new one and try again.";
+    return "That code is invalid or expired. Resend a new code and try again.";
   }
   return msg || "Something went wrong.";
 }
@@ -82,19 +97,6 @@ function clientId() {
     localStorage.setItem("swarsaathi_client_id", id);
   }
   return id;
-}
-
-function redirectTo() {
-  const path = location.pathname.endsWith("/") ? location.pathname : `${location.pathname}/`;
-  return `${location.origin}${path}`;
-}
-
-function showOtpStep(email) {
-  pendingEmail = (email || "").trim();
-  if (pendingEmail) localStorage.setItem("sargam_pending_email", pendingEmail);
-  if (emailInput && pendingEmail) emailInput.value = pendingEmail;
-  if (otpStep) otpStep.hidden = false;
-  otpInput?.focus();
 }
 
 async function api(path, opts = {}) {
@@ -141,14 +143,76 @@ function updateCostHint() {
   $("cost-hint").textContent = `This generation will use about ${cost} credit${cost === 1 ? "" : "s"} (${per}s per credit).`;
 }
 
+function focusAuth() {
+  accountPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (authPhase === "otp") otpInput?.focus();
+  else emailInput?.focus();
+}
+
+function setAuthPhase(phase, { email = pendingEmail, focus = true } = {}) {
+  authPhase = phase;
+  pendingEmail = (email || "").trim();
+  if (pendingEmail) localStorage.setItem("sargam_pending_email", pendingEmail);
+  else localStorage.removeItem("sargam_pending_email");
+
+  const signedIn = phase === "signed_in";
+  accountPanel?.classList.toggle("is-signed-in", signedIn);
+  composePanel?.classList.toggle("compose-panel-locked", !signedIn);
+  if (composeGate) composeGate.hidden = signedIn;
+  if (signedInBar) signedInBar.hidden = !signedIn;
+  if (authForm) authForm.hidden = signedIn;
+  if (authLede) authLede.hidden = signedIn;
+
+  if (accountTitle) {
+    accountTitle.textContent = signedIn ? "Account" : (phase === "otp" ? "Enter your code" : "Sign in");
+  }
+
+  if (stepEmail) {
+    stepEmail.hidden = signedIn;
+    stepEmail.classList.toggle("is-active", phase === "email");
+    stepEmail.classList.toggle("is-done", phase === "otp");
+  }
+  if (stepOtp) {
+    stepOtp.hidden = signedIn || phase !== "otp";
+    stepOtp.classList.toggle("is-active", phase === "otp");
+  }
+
+  if (emailInput && pendingEmail) emailInput.value = pendingEmail;
+  if (phase === "otp") {
+    const hint = $("otp-hint");
+    if (hint) {
+      hint.textContent = pendingEmail
+        ? `We sent a code to ${pendingEmail}. Enter it below to finish signing in.`
+        : "Enter the code from your email to finish signing in.";
+    }
+  }
+
+  $("generate-btn").disabled = !signedIn;
+  $("prompt").disabled = !signedIn;
+  $("duration").disabled = !signedIn;
+
+  if (focus && !signedIn) {
+    requestAnimationFrame(() => {
+      if (phase === "otp") {
+        otpInput?.focus();
+        otpInput?.select?.();
+      } else {
+        emailInput?.focus();
+      }
+    });
+  }
+}
+
 function applySignedOutUi() {
   creditChip.textContent = "0 credits";
-  authChip.textContent = "Sign in to generate";
-  $("signin-btn").hidden = true;
-  $("signout-btn").hidden = true;
-  if (authForm) authForm.hidden = false;
+  authChip.textContent = "Not signed in";
   renderPacks(config?.packs || me?.packs || []);
   updateCostHint();
+  if (pendingEmail && localStorage.getItem("sargam_pending_email")) {
+    setAuthPhase("otp", { email: pendingEmail, focus: false });
+  } else {
+    setAuthPhase("email", { email: "", focus: false });
+  }
 }
 
 async function refreshMe() {
@@ -156,12 +220,17 @@ async function refreshMe() {
   creditChip.textContent = `${me.credits} credit${me.credits === 1 ? "" : "s"}`;
   const signedIn = Boolean(accessToken) && !me.is_anonymous;
   authChip.textContent = signedIn
-    ? (me.email ? `Signed in as ${me.email}` : "Signed in")
-    : "Sign in to generate";
-  $("signin-btn").hidden = true;
-  $("signout-btn").hidden = !signedIn;
-  if (authForm) authForm.hidden = signedIn;
-  if (signedIn && otpStep) otpStep.hidden = true;
+    ? (me.email ? me.email : "Signed in")
+    : "Not signed in";
+
+  if (signedIn) {
+    $("signed-in-email").textContent = me.email || "Signed in";
+    $("signed-in-credits").textContent = `${me.credits} credit${me.credits === 1 ? "" : "s"} ready to use.`;
+    setAuthPhase("signed_in", { focus: false });
+  } else if (authPhase !== "otp") {
+    applySignedOutUi();
+  }
+
   $("duration").max = me.max_duration_sec || 180;
   renderPacks(me.packs);
   updateCostHint();
@@ -169,8 +238,9 @@ async function refreshMe() {
 
 async function buyPack(packId) {
   if (!accessToken) {
-    setStatus("Sign in with your email code first, then buy credits.", true);
-    emailInput?.focus();
+    setAuthStatus("Sign in first, then buy credits.", true);
+    setAuthPhase(pendingEmail ? "otp" : "email");
+    focusAuth();
     return;
   }
   try {
@@ -187,8 +257,9 @@ async function buyPack(packId) {
 
 async function generate() {
   if (!accessToken) {
-    setStatus("Sign in with your email code first to generate audio.", true);
-    emailInput?.focus();
+    setAuthStatus("Sign in to generate audio.", true);
+    setAuthPhase(pendingEmail ? "otp" : "email");
+    focusAuth();
     return;
   }
   const prompt = $("prompt").value.trim();
@@ -218,7 +289,7 @@ async function generate() {
     if (err.status === 402) setStatus("Not enough credits. Buy a pack below.", true);
     else setStatus(err.message || "Generation failed", true);
   } finally {
-    $("generate-btn").disabled = false;
+    $("generate-btn").disabled = !accessToken;
     try { await refreshMe(); } catch (_e) { /* ignore */ }
   }
 }
@@ -243,17 +314,22 @@ function setSessionToken(token) {
   if (accessToken) {
     localStorage.setItem("sargam_access_token", accessToken);
     localStorage.removeItem("sargam_pending_email");
+    localStorage.removeItem("sargam_pending_otp_type");
     pendingEmail = "";
+    pendingOtpType = "";
   } else {
     localStorage.removeItem("sargam_access_token");
   }
 }
 
-async function applySession(session, successMsg = "Signed in.") {
+async function applySession(session, successMsg = "Signed in. You can generate below.") {
   if (!session?.access_token) return false;
   setSessionToken(session.access_token);
+  setAuthStatus(successMsg);
   setStatus(successMsg);
   await refreshMe().catch(() => {});
+  composePanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+  $("prompt")?.focus();
   return true;
 }
 
@@ -267,63 +343,66 @@ function cleanAuthParamsFromUrl() {
       changed = true;
     }
   }
-  if (url.hash.includes("access_token") || url.hash.includes("error")) {
-    changed = true;
-  }
+  if (url.hash.includes("access_token") || url.hash.includes("error")) changed = true;
   if (changed) history.replaceState({}, "", `${url.pathname}${url.search}`);
 }
 
-async function signIn(event) {
+async function sendCode(event) {
   event?.preventDefault?.();
-  const email = (emailInput?.value || "").trim();
+  const email = (emailInput?.value || "").trim().toLowerCase();
   if (!email || !email.includes("@")) {
-    setStatus("Enter a valid email address.", true);
+    setAuthStatus("Enter a valid email address.", true);
     emailInput?.focus();
     return;
   }
-  const sendBtn = $("send-link-btn");
+  const sendBtn = $("send-code-btn");
+  const resendBtn = $("resend-code-btn");
   if (sendBtn) sendBtn.disabled = true;
-  setStatus("Sending sign-in code…");
+  if (resendBtn) resendBtn.disabled = true;
+  setAuthStatus("Sending your code…");
   try {
-    // Our API generates a Supabase OTP and emails it via Resend — free-tier
-    // Supabase no longer allows customizing the default magic-link template.
-    await api("/api/v1/sargam/auth/send-code", {
+    const out = await api("/api/v1/sargam/auth/send-code", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
-    showOtpStep(email);
-    setStatus(`Check ${email} for your Sargam sign-in code, then enter it below.`);
+    pendingOtpType = out.verification_type || "";
+    if (pendingOtpType) localStorage.setItem("sargam_pending_otp_type", pendingOtpType);
+    if (otpInput) otpInput.value = "";
+    setAuthPhase("otp", { email: out.email || email, focus: true });
+    setAuthStatus(`Code sent to ${out.email || email}. Check your inbox (and spam), then enter it in step 2.`);
+    focusAuth();
   } catch (err) {
-    setStatus(friendlyError(err.message || "Could not send sign-in email"), true);
+    setAuthStatus(friendlyError(err.message || "Could not send sign-in email"), true);
   } finally {
     if (sendBtn) sendBtn.disabled = false;
+    if (resendBtn) resendBtn.disabled = false;
   }
 }
 
 async function verifyOtpCode() {
   const client = await ensureSupabase();
   if (!client) {
-    setStatus("Sign-in is temporarily unavailable. Please try again later.", true);
+    setAuthStatus("Sign-in is temporarily unavailable. Please try again later.", true);
     return;
   }
-  const email = (emailInput?.value || pendingEmail || "").trim();
+  const email = (emailInput?.value || pendingEmail || "").trim().toLowerCase();
   const token = (otpInput?.value || "").replace(/\s+/g, "");
   if (!email || !email.includes("@")) {
-    setStatus("Enter the same email you used to request the code.", true);
-    emailInput?.focus();
+    setAuthStatus("Enter the same email you used to request the code.", true);
+    setAuthPhase("email");
     return;
   }
   if (!/^\d{6,8}$/.test(token)) {
-    setStatus("Enter the 6-digit code from your email.", true);
+    setAuthStatus("Enter the full code from your email.", true);
     otpInput?.focus();
     return;
   }
   const btn = $("verify-otp-btn");
   if (btn) btn.disabled = true;
-  setStatus("Verifying code…");
+  setAuthStatus("Verifying…");
   try {
-    // Try common email OTP types; first-time signup may arrive as signup/magiclink.
-    const types = ["email", "magiclink", "signup"];
+    const preferred = pendingOtpType || localStorage.getItem("sargam_pending_otp_type") || "";
+    const types = [...new Set([preferred, "email", "magiclink", "signup"].filter(Boolean))];
     let session = null;
     let lastError = null;
     for (const type of types) {
@@ -335,15 +414,23 @@ async function verifyOtpCode() {
       lastError = error;
     }
     if (!session) {
-      setStatus(friendlyError(lastError?.message || "Could not verify that code"), true);
+      setAuthStatus(friendlyError(lastError?.message || "Could not verify that code"), true);
       return;
     }
     await applySession(session);
   } catch (err) {
-    setStatus(friendlyError(err.message || "Could not verify that code"), true);
+    setAuthStatus(friendlyError(err.message || "Could not verify that code"), true);
   } finally {
     if (btn) btn.disabled = false;
   }
+}
+
+function changeEmail() {
+  if (otpInput) otpInput.value = "";
+  pendingOtpType = "";
+  localStorage.removeItem("sargam_pending_otp_type");
+  setAuthPhase("email", { email: pendingEmail || emailInput?.value || "", focus: true });
+  setAuthStatus("Enter the email you want to use.");
 }
 
 async function signOut() {
@@ -352,7 +439,9 @@ async function signOut() {
   setSessionToken("");
   me = null;
   applySignedOutUi();
-  setStatus("Signed out.");
+  setAuthStatus("Signed out. Enter your email to sign in again.");
+  setStatus("");
+  focusAuth();
 }
 
 async function syncSession() {
@@ -364,32 +453,27 @@ async function syncSession() {
   const tokenHash = url.searchParams.get("token_hash");
   const otpType = url.searchParams.get("type") || "email";
   const authError = url.searchParams.get("error_description") || url.searchParams.get("error");
-
-  // Hash tokens (implicit / some email confirm redirects).
   const hashParams = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : "");
   const hashToken = hashParams.get("access_token");
   const hashError = hashParams.get("error_description") || hashParams.get("error");
 
   try {
     if (authError || hashError) {
-      setStatus(friendlyError(decodeURIComponent(authError || hashError)), true);
-      showOtpStep(pendingEmail || emailInput?.value || "");
+      setAuthStatus(friendlyError(decodeURIComponent(authError || hashError)), true);
+      setAuthPhase(pendingEmail ? "otp" : "email");
     } else if (tokenHash) {
-      const { data, error } = await client.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: otpType,
-      });
+      const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type: otpType });
       if (error) {
-        setStatus(friendlyError(error.message), true);
-        showOtpStep(pendingEmail || emailInput?.value || "");
+        setAuthStatus(friendlyError(error.message), true);
+        setAuthPhase(pendingEmail ? "otp" : "email");
       } else {
         await applySession(data.session);
       }
     } else if (code) {
       const { data, error } = await client.auth.exchangeCodeForSession(code);
       if (error) {
-        setStatus(friendlyError(error.message), true);
-        showOtpStep(pendingEmail || emailInput?.value || "");
+        setAuthStatus(friendlyError(error.message), true);
+        setAuthPhase(pendingEmail ? "otp" : "email");
       } else {
         await applySession(data.session);
       }
@@ -399,8 +483,8 @@ async function syncSession() {
         refresh_token: hashParams.get("refresh_token") || "",
       });
       if (error) {
-        setStatus(friendlyError(error.message), true);
-        showOtpStep(pendingEmail || emailInput?.value || "");
+        setAuthStatus(friendlyError(error.message), true);
+        setAuthPhase(pendingEmail ? "otp" : "email");
       } else {
         await applySession(data.session);
       }
@@ -422,6 +506,7 @@ async function syncSession() {
 }
 
 async function boot() {
+  setAuthPhase(pendingEmail ? "otp" : "email", { focus: false });
   try {
     config = await api("/api/v1/sargam/config");
     await syncSession();
@@ -435,33 +520,43 @@ async function boot() {
     if (params.get("checkout") === "success") setStatus("Payment received. Your credits will appear shortly.");
     if (params.get("checkout") === "cancel") setStatus("Checkout canceled.");
     if (!accessToken && !params.get("checkout")) {
-      if (pendingEmail) {
-        showOtpStep(pendingEmail);
-        setStatus("Enter the 6-digit code from your email to finish signing in.");
+      if (authPhase === "otp") {
+        setAuthStatus(`Enter the code we sent to ${pendingEmail || "your email"}.`);
       } else {
-        setStatus("Enter your email and we’ll send a 6-digit sign-in code.");
+        setAuthStatus("Step 1: enter your email and we’ll send a one-time code.");
       }
     }
   } catch (err) {
-    setStatus("Sargam is temporarily unavailable. Please try again later.", true);
+    setAuthStatus("Sargam is temporarily unavailable. Please try again later.", true);
     authChip.textContent = "Unavailable";
     applySignedOutUi();
   }
 }
 
-$("generate-btn").addEventListener("click", generate);
-$("signout-btn").addEventListener("click", signOut);
-$("duration").addEventListener("input", updateCostHint);
-authForm?.addEventListener("submit", signIn);
+authForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (authPhase === "otp") verifyOtpCode();
+  else sendCode(event);
+});
+$("send-code-btn")?.addEventListener("click", sendCode);
 $("verify-otp-btn")?.addEventListener("click", verifyOtpCode);
-otpInput?.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    verifyOtpCode();
+$("resend-code-btn")?.addEventListener("click", sendCode);
+$("change-email-btn")?.addEventListener("click", changeEmail);
+$("signout-btn")?.addEventListener("click", signOut);
+$("generate-btn").addEventListener("click", generate);
+$("duration").addEventListener("input", updateCostHint);
+
+otpInput?.addEventListener("input", () => {
+  const digits = (otpInput.value || "").replace(/\D/g, "").slice(0, 8);
+  otpInput.value = digits;
+  // Auto-verify when a full OTP arrives (6–8 digits depending on Supabase).
+  if (/^\d{6,8}$/.test(digits) && digits.length >= 6) {
+    // Prefer 8 if that's what they keep typing; wait briefly for 8th digit.
+    clearTimeout(otpInput._autoVerifyTimer);
+    otpInput._autoVerifyTimer = setTimeout(() => {
+      if (/^\d{6,8}$/.test(otpInput.value)) verifyOtpCode();
+    }, digits.length >= 8 ? 50 : 450);
   }
 });
-$("signin-btn")?.addEventListener("click", () => {
-  authForm.hidden = false;
-  emailInput?.focus();
-});
+
 boot();

@@ -186,7 +186,12 @@ def sargam_send_code(body: SendCodeIn) -> dict:
             if ts < cutoff:
                 _OTP_SEND_AT.pop(key, None)
 
-    return {"ok": True, "email": otp.email}
+    return {
+        "ok": True,
+        "email": otp.email,
+        # Lets the client verify with the correct Supabase OTP type first.
+        "verification_type": otp.verification_type,
+    }
 
 
 @router.get("/me", response_model=MeOut)
