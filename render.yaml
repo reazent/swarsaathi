@@ -1,0 +1,61 @@
+# Render Blueprint — SwarSaathi API (Sargam + pitch services)
+# Dashboard: New → Blueprint → connect this repo → apply.
+# Set secret env vars in the Render dashboard (do not commit secrets).
+
+services:
+  - type: web
+    name: swarsaathi-api
+    runtime: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: PRODUCT_NAME
+        value: Sargam
+      - key: SARGAM_PUBLIC_URL
+        value: https://swarsaathi.com/sargam/
+      - key: FAL_MODEL_ID
+        value: fal-ai/stable-audio-3/medium/text-to-audio
+      - key: STABILITY_MODEL_ID
+        value: stabilityai/stable-audio-3-medium
+      - key: SARGAM_FREE_CREDITS
+        value: "3"
+      - key: SARGAM_SECONDS_PER_CREDIT
+        value: "30"
+      - key: SARGAM_MAX_DURATION_SEC
+        value: "180"
+      - key: CORS_ORIGINS
+        value: https://swarsaathi.com,https://www.swarsaathi.com,http://localhost:8000,http://127.0.0.1:8000
+      - key: POSTHOG_HOST
+        value: https://us.i.posthog.com
+      # Secrets — add in Render dashboard (Environment):
+      # DATABASE_URL, FAL_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY,
+      # STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET,
+      # SENTRY_DSN, POSTHOG_KEY, RESEND_API_KEY, RESEND_FROM,
+      # REVENUECAT_PUBLIC_KEY, REVENUECAT_PUBLIC_KEY_IOS, REVENUECAT_SECRET_KEY
+      - key: DATABASE_URL
+        sync: false
+      - key: FAL_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: POSTHOG_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false

@@ -35,10 +35,10 @@ each, and where it goes in `.env`. Do the **Now** block first; the rest can wait
 - Create a Redis database (pick a region near your API).
 - Grab: `REDIS_URL=rediss://...` (the TLS URL).
 
-### 5. API hosting — Fly.io (simplest) or Google Cloud Run (if using credits)
-- Fly: https://fly.io/app/sign-up — `brew install flyctl && fly auth signup`, later `fly launch` (we have a Dockerfile).
-- Cloud Run: https://console.cloud.google.com — create a GCP project; we deploy the container later.
-- Nothing to put in `.env` yet — this *hosts* the app.
+### 5. API hosting — Render (current)
+- Sign up: https://render.com/register · connect GitHub · see `docs/RENDER.md`
+- Blueprint uses root `render.yaml` + `Dockerfile` (free web service).
+- After deploy, set `site/sargam` meta `swarsaathi-api` to the Render URL.
 
 ### 6. Sentry (errors) + PostHog (analytics)
 - Sentry: https://sentry.io/signup → create a project (Python) → grab `SENTRY_DSN`.
