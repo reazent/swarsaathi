@@ -87,6 +87,8 @@ def health() -> dict:
             "stripe_publishable": bool(settings.stripe_publishable_key),
             "stripe_webhook_secret": bool(settings.stripe_webhook_secret),
             "resend_from": bool(settings.resend_from),
+            "resend_api_key": bool(settings.resend_api_key),
+            "supabase_service_key": bool(settings.supabase_service_key),
         },
     }
 

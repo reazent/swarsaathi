@@ -54,8 +54,8 @@
         <button type="submit" class="btn" id="send-link-btn">Send sign-in code</button>
         <div id="otp-step" class="otp-step" hidden>
           <label class="field">
-            <span>6-digit code from email</span>
-            <input id="otp" type="text" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="8" placeholder="123456" />
+            <span>Code from email</span>
+            <input id="otp" type="text" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" maxlength="8" placeholder="123456" />
           </label>
           <button type="button" class="btn primary" id="verify-otp-btn">Sign in</button>
         </div>

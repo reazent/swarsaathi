@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Annotated
@@ -16,7 +18,8 @@ from app.db.models import SargamGeneration
 from app.db.session import get_db
 from app.services import credits
 from app.services.fal_audio import FalError, generate_text_to_audio
-from app.services.supabase_auth import AuthError, user_from_access_token
+from app.services.resend_email import EmailError, send_sargam_sign_in_code
+from app.services.supabase_auth import AuthError, generate_sign_in_otp, user_from_access_token
 
 router = APIRouter(prefix="/api/v1/sargam", tags=["sargam"])
 
@@ -59,6 +62,15 @@ class MeOut(BaseModel):
 
 class CheckoutIn(BaseModel):
     pack_id: str
+
+
+class SendCodeIn(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+
+
+# Simple process-local throttle for OTP sends (Render free = one instance).
+_OTP_SEND_AT: dict[str, float] = {}
+_OTP_COOLDOWN_SEC = 60
 
 
 def _public_generate_error(exc: Exception) -> str:
@@ -131,7 +143,50 @@ def sargam_config() -> dict:
         "max_duration_sec": settings.sargam_max_duration_sec,
         "free_credits_on_signup": settings.sargam_free_credits,
         "packs": settings.credit_packs(),
+        "auth_email_configured": bool(
+            settings.resend_api_key and settings.resend_from and settings.supabase_service_key
+        ),
     }
+
+
+@router.post("/auth/send-code")
+def sargam_send_code(body: SendCodeIn) -> dict:
+    """Generate a Supabase OTP and email it via Resend (bypasses free-tier template lock)."""
+    email = str(body.email).strip().lower()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        raise HTTPException(status_code=400, detail="Enter a valid email address.")
+
+    now = time.time()
+    last = _OTP_SEND_AT.get(email, 0.0)
+    if now - last < _OTP_COOLDOWN_SEC:
+        wait = int(_OTP_COOLDOWN_SEC - (now - last))
+        raise HTTPException(
+            status_code=429,
+            detail=f"Please wait {wait}s before requesting another code.",
+        )
+
+    if not settings.supabase_service_key:
+        raise HTTPException(status_code=503, detail="Sign-in is temporarily unavailable.")
+    if not settings.resend_api_key:
+        raise HTTPException(status_code=503, detail="Sign-in email is temporarily unavailable.")
+
+    try:
+        otp = generate_sign_in_otp(email, redirect_to=settings.sargam_public_url)
+        send_sargam_sign_in_code(to=otp.email, code=otp.email_otp)
+    except AuthError as exc:
+        raise HTTPException(status_code=502, detail="Could not create a sign-in code. Try again.") from exc
+    except EmailError as exc:
+        raise HTTPException(status_code=502, detail="Could not send the sign-in email. Try again.") from exc
+
+    _OTP_SEND_AT[email] = now
+    # Bound memory on long-lived processes.
+    if len(_OTP_SEND_AT) > 5000:
+        cutoff = now - 3600
+        for key, ts in list(_OTP_SEND_AT.items()):
+            if ts < cutoff:
+                _OTP_SEND_AT.pop(key, None)
+
+    return {"ok": True, "email": otp.email}
 
 
 @router.get("/me", response_model=MeOut)

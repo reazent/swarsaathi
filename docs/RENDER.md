@@ -69,38 +69,17 @@ Stripe → Developers → Webhooks → Add endpoint:
 Events: `checkout.session.completed`  
 Copy signing secret → Render env `STRIPE_WEBHOOK_SECRET` → redeploy.
 
-## 7. Supabase Auth (required for Sargam sign-in)
+## 7. Sargam sign-in email (Resend, free)
 
-Sargam signs in with a **6-digit email code** (OTP). Clicking the email link alone often only confirms the address if the link opens in a different browser than the one that requested sign-in (PKCE).
+Free-tier Supabase locks custom magic-link templates when using their default SMTP. Sargam avoids that:
 
-### URL configuration
+1. API calls Supabase Admin `generate_link` (returns OTP, does **not** send Supabase mail)
+2. API emails the code via **Resend** from `RESEND_FROM`
+3. Browser verifies the code with Supabase `verifyOtp`
 
-Supabase Dashboard → **Authentication** → **URL configuration**:
+Required Render env vars:
 
-- **Site URL:** `https://swarsaathi.com`
-- **Redirect URLs** (add all):
-  - `https://swarsaathi.com/sargam`
-  - `https://swarsaathi.com/sargam/**`
-  - `https://www.swarsaathi.com/sargam/**`
-  - `http://127.0.0.1:8000/sargam/**`
-  - `http://localhost:8000/sargam/**`
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`
+- `RESEND_API_KEY`, `RESEND_FROM` (e.g. `SwarSaathi <support@swarsaathi.com>`)
 
-### Email template (required for the 6-digit code)
-
-Dashboard → **Authentication** → **Email templates** → **Magic Link**:
-
-```html
-<h2>Your Sargam sign-in code</h2>
-<p>Enter this code on the Sargam page:</p>
-<p style="font-size:24px;letter-spacing:4px"><strong>{{ .Token }}</strong></p>
-<p>Or open this link in the <em>same</em> browser where you requested sign-in:</p>
-<p><a href="{{ .ConfirmationURL }}">Sign in to Sargam</a></p>
-```
-
-Optional (works across browsers without typing a code) — use a token-hash link instead of `{{ .ConfirmationURL }}`:
-
-```html
-<p><a href="{{ .SiteURL }}/sargam/?token_hash={{ .TokenHash }}&type=email">Sign in to Sargam</a></p>
-```
-
-Also confirm **Authentication → Providers → Email** is enabled. On the free plan, Supabase rate-limits outbound auth email (~2/hour) until you attach custom SMTP.
+Optional (only if you still use link redirects): Site URL `https://swarsaathi.com` and redirect allow list `https://swarsaathi.com/sargam/**`.

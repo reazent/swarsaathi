@@ -275,11 +275,6 @@ function cleanAuthParamsFromUrl() {
 
 async function signIn(event) {
   event?.preventDefault?.();
-  const client = await ensureSupabase();
-  if (!client) {
-    setStatus("Sign-in is temporarily unavailable. Please try again later.", true);
-    return;
-  }
   const email = (emailInput?.value || "").trim();
   if (!email || !email.includes("@")) {
     setStatus("Enter a valid email address.", true);
@@ -290,20 +285,14 @@ async function signIn(event) {
   if (sendBtn) sendBtn.disabled = true;
   setStatus("Sending sign-in code…");
   try {
-    const { error } = await client.auth.signInWithOtp({
-      email,
-      options: {
-        // Keep redirect for link-based flows; OTP entry is the reliable path.
-        emailRedirectTo: redirectTo(),
-        shouldCreateUser: true,
-      },
+    // Our API generates a Supabase OTP and emails it via Resend — free-tier
+    // Supabase no longer allows customizing the default magic-link template.
+    await api("/api/v1/sargam/auth/send-code", {
+      method: "POST",
+      body: JSON.stringify({ email }),
     });
-    if (error) {
-      setStatus(friendlyError(error.message), true);
-      return;
-    }
     showOtpStep(email);
-    setStatus(`Check ${email} for a 6-digit code (and optionally a link). Enter the code here to finish signing in.`);
+    setStatus(`Check ${email} for your Sargam sign-in code, then enter it below.`);
   } catch (err) {
     setStatus(friendlyError(err.message || "Could not send sign-in email"), true);
   } finally {

@@ -22,9 +22,9 @@ Fal list price is roughly a few cents per clip; packs include margin for failed 
 - `POST /api/v1/sargam/checkout` — Stripe Checkout for a pack
 - `POST /api/v1/billing/stripe/webhook` — grants credits on `checkout.session.completed`
 
-Auth: Supabase email OTP (6-digit code) → Bearer token on API calls. In production, `/me` works signed-out (0 credits); generate/checkout require sign-in. In `APP_ENV=development`, anonymous `X-Client-Id` sessions are allowed for local testing.
+Auth: API emails a Supabase OTP via Resend → browser `verifyOtp` → Bearer token. In production, `/me` works signed-out (0 credits); generate/checkout require sign-in. In `APP_ENV=development`, anonymous `X-Client-Id` sessions are allowed for local testing.
 
-**Supabase checklist:** Site URL + redirect allow list, and Magic Link email template must include `{{ .Token }}` — see `docs/RENDER.md` §7.
+See `docs/RENDER.md` §7 for Resend + Supabase service-role env vars.
 
 ## Local run
 
