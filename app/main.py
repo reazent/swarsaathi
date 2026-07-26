@@ -82,6 +82,8 @@ def health() -> dict:
         "config": {
             "database": bool(settings.database_url),
             "fal_key": bool(settings.fal_key),
+            "modal_song": bool(settings.modal_token_id and settings.modal_token_secret),
+            "modal_audio_url": bool(settings.modal_ace_audio_url),
             "supabase": bool(settings.supabase_url and settings.supabase_anon_key),
             "stripe_secret": bool(settings.stripe_secret_key),
             "stripe_publishable": bool(settings.stripe_publishable_key),

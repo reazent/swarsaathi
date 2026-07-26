@@ -285,13 +285,24 @@ def sargam_generate(
     user: SargamUser = Depends(resolve_sargam_user),
     db: Session = Depends(get_db),
 ) -> GenerateOut:
-    if not settings.fal_key:
+    mode = body.mode if body.mode in ("song", "clip") else "clip"
+    modal_ready = bool(settings.modal_token_id.strip() and settings.modal_token_secret.strip())
+    song_ready = bool(
+        modal_ready
+        or settings.runware_api_key.strip()
+        or settings.wavespeed_api_key.strip()
+        or settings.fal_key.strip()
+    )
+    if mode == "clip" and not settings.fal_key.strip():
         raise HTTPException(
             status_code=503,
             detail="Generation is temporarily unavailable. Please try again later.",
         )
-
-    mode = body.mode if body.mode in ("song", "clip") else "clip"
+    if mode == "song" and not song_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Generation is temporarily unavailable. Please try again later.",
+        )
     max_dur = (
         settings.sargam_song_max_duration_sec
         if mode == "song"

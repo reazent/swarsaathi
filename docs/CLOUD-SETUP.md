@@ -69,9 +69,10 @@ each, and where it goes in `.env`. Do the **Now** block first; the rest can wait
 
 ## WHEN VOCAL SEPARATION / TRAINING TURNS ON
 
-### 11. Fal (Sargam / Stable Audio — current)
-- Sign up: https://fal.ai · create API key → `FAL_KEY`
-- Model: `fal-ai/stable-audio-3/medium/text-to-audio`
+### 11. Modal + Fal (Sargam) — optional Runware/WaveSpeed fallbacks
+- **Full song (preferred):** Modal self-host ACE-Step v1.5 XL Turbo — https://modal.com · `modal deploy modal_apps/ace_step_song.py` → set `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `MODAL_ACE_AUDIO_URL`.
+- **Full song (managed fallbacks):** Runware XL turbo (`RUNWARE_API_KEY`) or WaveSpeed Ace-Step 1.5 (`WAVESPEED_API_KEY`).
+- **Music sketch:** Fal Stable Audio 3 — https://fal.ai → `FAL_KEY`.
 - Product UI: `/sargam/` · API: `/api/v1/sargam/*`
 - Stripe credit packs via `/api/v1/sargam/checkout` + webhook `/api/v1/billing/stripe/webhook`
 

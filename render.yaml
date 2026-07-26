@@ -20,12 +20,20 @@ services:
         value: fal-ai/stable-audio-3/medium/text-to-audio
       - key: STABILITY_MODEL_ID
         value: stabilityai/stable-audio-3-medium
+      - key: RUNWARE_ACE_MODEL_ID
+        value: runware:ace-step@v1.5-xl-turbo
+      - key: WAVESPEED_ACE_MODEL_ID
+        value: wavespeed-ai/ace-step-1.5
       - key: FAL_ACE_MODEL_ID
         value: fal-ai/ace-step
       - key: FAL_ACE_PROMPT_MODEL_ID
         value: fal-ai/ace-step/prompt-to-audio
       - key: ACE_STEP_MODEL_REF
         value: ACE-Step/acestep-v15-xl-turbo
+      - key: SARGAM_SONG_PROVIDER
+        value: auto
+      # Modal song host is already deployed as app `sargam-ace-step`.
+      # Render needs MODAL_TOKEN_ID + MODAL_TOKEN_SECRET (+ audio URL below).
       - key: SARGAM_FREE_CREDITS
         value: "3"
       - key: SARGAM_SECONDS_PER_CREDIT
@@ -39,11 +47,25 @@ services:
       - key: POSTHOG_HOST
         value: https://us.i.posthog.com
       # Secrets — add in Render dashboard (Environment):
-      # DATABASE_URL, FAL_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY,
+      # DATABASE_URL,
+      # MODAL_TOKEN_ID, MODAL_TOKEN_SECRET, MODAL_ACE_GENERATE_URL (preferred songs),
+      # RUNWARE_API_KEY / WAVESPEED_API_KEY (optional song fallbacks),
+      # FAL_KEY (music sketches + last-resort song),
+      # SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY,
       # STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET,
       # SENTRY_DSN, POSTHOG_KEY, RESEND_API_KEY, RESEND_FROM,
       # REVENUECAT_PUBLIC_KEY, REVENUECAT_PUBLIC_KEY_IOS, REVENUECAT_SECRET_KEY
       - key: DATABASE_URL
+        sync: false
+      - key: MODAL_TOKEN_ID
+        sync: false
+      - key: MODAL_TOKEN_SECRET
+        sync: false
+      - key: MODAL_ACE_AUDIO_URL
+        value: https://sumitv77--sargam-ace-audio.modal.run
+      - key: RUNWARE_API_KEY
+        sync: false
+      - key: WAVESPEED_API_KEY
         sync: false
       - key: FAL_KEY
         sync: false

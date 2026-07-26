@@ -180,7 +180,7 @@ function applyModeUi() {
     const max = meta?.max_duration_sec || (isSong ? 240 : 180);
     const fallback = meta?.default_duration || (isSong ? 60 : 30);
     duration.max = max;
-    duration.min = isSong ? 15 : 5;
+    duration.min = isSong ? 30 : 5;
     if (lastGenMode !== mode) {
       duration.value = String(fallback);
       lastGenMode = mode;

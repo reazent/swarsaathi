@@ -47,7 +47,8 @@ Open http://127.0.0.1:8000/sargam/
 
 API host: **Render** (see `docs/RENDER.md`).
 
-1. Deploy API on Render with `.env` secrets (`FAL_KEY`, ACE model envs optional — defaults in `render.yaml`).
-2. Point Stripe webhook to `https://<render-host>/api/v1/billing/stripe/webhook`.
-3. Site on Cloudflare Pages (`/sargam/`).
-4. Set `<meta name="swarsaathi-api" content="https://<render-host>" />` in `site/sargam/index.html`.
+1. Deploy full-song model on Modal: `modal deploy modal_apps/ace_step_song.py` (ACE-Step v1.5 XL Turbo on A10).
+2. Deploy API on Render with secrets: `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, plus `FAL_KEY` (Music sketch). Set `MODAL_ACE_AUDIO_URL` to the **sargam-ace-audio** URL from deploy output. Optional song fallbacks: `RUNWARE_API_KEY`, `WAVESPEED_API_KEY`.
+3. Point Stripe webhook to `https://<render-host>/api/v1/billing/stripe/webhook`.
+4. Site on Cloudflare Pages (`/sargam/`).
+5. Set `<meta name="swarsaathi-api" content="https://<render-host>" />` in `site/sargam/index.html`.

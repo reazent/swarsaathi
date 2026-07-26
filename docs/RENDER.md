@@ -27,7 +27,10 @@ In the service → **Environment**, paste from your local `.env` (production val
 
 Required for Sargam:
 - `DATABASE_URL` — Neon Postgres URL  
-- `FAL_KEY`  
+- `MODAL_TOKEN_ID` / `MODAL_TOKEN_SECRET` — full songs via Modal SDK (ACE-Step XL Turbo; preferred)  
+- `MODAL_ACE_AUDIO_URL` — public audio fetch URL from Modal deploy (`sargam-ace-audio`)  
+- `RUNWARE_API_KEY` / `WAVESPEED_API_KEY` — optional managed song fallbacks  
+- `FAL_KEY` — music sketches + last-resort song  
 - `SUPABASE_URL`  
 - `SUPABASE_ANON_KEY`  
 - `SUPABASE_SERVICE_KEY`  

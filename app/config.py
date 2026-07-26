@@ -27,10 +27,21 @@ class Settings(BaseSettings):
     # Clip / music-sketch engine (Stable Audio 3).
     fal_model_id: str = "fal-ai/stable-audio-3/medium/text-to-audio"
     stability_model_id: str = "stabilityai/stable-audio-3-medium"
-    # Full-song engine (Fal ACE-Step). Target HF id kept for docs / future self-host.
+    # Full-song engine (best → fallback):
+    # Modal ACE-Step XL turbo → Runware → WaveSpeed → Fal classic.
+    modal_token_id: str = ""
+    modal_token_secret: str = ""
+    # Public audio fetch URL from `modal deploy` (serve_audio web function).
+    modal_ace_audio_url: str = "https://sumitv77--sargam-ace-audio.modal.run"
+    runware_api_key: str = ""
+    runware_ace_model_id: str = "runware:ace-step@v1.5-xl-turbo"
+    wavespeed_api_key: str = ""
+    wavespeed_ace_model_id: str = "wavespeed-ai/ace-step-1.5"
     fal_ace_model_id: str = "fal-ai/ace-step"
     fal_ace_prompt_model_id: str = "fal-ai/ace-step/prompt-to-audio"
     ace_step_model_ref: str = "ACE-Step/acestep-v15-xl-turbo"
+    # auto | modal | runware | wavespeed | fal
+    sargam_song_provider: str = "auto"
     sargam_free_credits: int = 3
     sargam_seconds_per_credit: int = 30
     sargam_max_duration_sec: int = 180
