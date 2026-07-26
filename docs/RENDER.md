@@ -40,11 +40,11 @@ Optional: `SENTRY_DSN`, `POSTHOG_KEY`, `RESEND_API_KEY`, RevenueCat keys, `STRIP
 
 ## 4. Deploy
 
-Render builds the Dockerfile and gives a URL like:
+Production URL:
 
 `https://swarsaathi-api.onrender.com`
 
-Check: `https://<your-service>.onrender.com/health` → `{"status":"ok",...}`
+Check: `https://swarsaathi-api.onrender.com/health` → `{"status":"ok",...}`
 
 **Cold starts:** free tier sleeps after idle; first request after sleep can take 30–60s.
 
