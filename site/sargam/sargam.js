@@ -20,13 +20,16 @@ const authChip = $("auth-chip");
 const packsEl = $("packs");
 const player = $("player");
 const emailInput = $("email");
+const otpInput = $("otp");
 const authForm = $("auth-form");
+const otpStep = $("otp-step");
 
 let accessToken = localStorage.getItem("sargam_access_token") || "";
 let supabase = null;
 let config = null;
 let me = null;
 let authListenerBound = false;
+let pendingEmail = localStorage.getItem("sargam_pending_email") || "";
 
 function setStatus(msg, isError = false) {
   statusEl.textContent = msg || "";
@@ -53,6 +56,16 @@ function friendlyError(msg, status) {
   if (text.includes("rate limit") || text.includes("email rate")) {
     return "Too many sign-in emails. Wait a few minutes and try again.";
   }
+  if (
+    text.includes("pkce")
+    || text.includes("code verifier")
+    || text.includes("both auth code and code verifier")
+  ) {
+    return "The email link opened in a different browser, so sign-in could not finish. Enter the 6-digit code from the email instead.";
+  }
+  if (text.includes("otp") || text.includes("token") || text.includes("invalid") || text.includes("expired")) {
+    return "That code is invalid or expired. Request a new one and try again.";
+  }
   return msg || "Something went wrong.";
 }
 
@@ -74,6 +87,14 @@ function clientId() {
 function redirectTo() {
   const path = location.pathname.endsWith("/") ? location.pathname : `${location.pathname}/`;
   return `${location.origin}${path}`;
+}
+
+function showOtpStep(email) {
+  pendingEmail = (email || "").trim();
+  if (pendingEmail) localStorage.setItem("sargam_pending_email", pendingEmail);
+  if (emailInput && pendingEmail) emailInput.value = pendingEmail;
+  if (otpStep) otpStep.hidden = false;
+  otpInput?.focus();
 }
 
 async function api(path, opts = {}) {
@@ -140,6 +161,7 @@ async function refreshMe() {
   $("signin-btn").hidden = true;
   $("signout-btn").hidden = !signedIn;
   if (authForm) authForm.hidden = signedIn;
+  if (signedIn && otpStep) otpStep.hidden = true;
   $("duration").max = me.max_duration_sec || 180;
   renderPacks(me.packs);
   updateCostHint();
@@ -147,7 +169,7 @@ async function refreshMe() {
 
 async function buyPack(packId) {
   if (!accessToken) {
-    setStatus("Sign in with email first, then buy credits.", true);
+    setStatus("Sign in with your email code first, then buy credits.", true);
     emailInput?.focus();
     return;
   }
@@ -165,7 +187,7 @@ async function buyPack(packId) {
 
 async function generate() {
   if (!accessToken) {
-    setStatus("Sign in with email first to generate audio.", true);
+    setStatus("Sign in with your email code first to generate audio.", true);
     emailInput?.focus();
     return;
   }
@@ -208,7 +230,6 @@ async function ensureSupabase() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        // We exchange ?code= ourselves in syncSession to avoid double-consume.
         detectSessionInUrl: false,
         flowType: "pkce",
       },
@@ -219,8 +240,37 @@ async function ensureSupabase() {
 
 function setSessionToken(token) {
   accessToken = token || "";
-  if (accessToken) localStorage.setItem("sargam_access_token", accessToken);
-  else localStorage.removeItem("sargam_access_token");
+  if (accessToken) {
+    localStorage.setItem("sargam_access_token", accessToken);
+    localStorage.removeItem("sargam_pending_email");
+    pendingEmail = "";
+  } else {
+    localStorage.removeItem("sargam_access_token");
+  }
+}
+
+async function applySession(session, successMsg = "Signed in.") {
+  if (!session?.access_token) return false;
+  setSessionToken(session.access_token);
+  setStatus(successMsg);
+  await refreshMe().catch(() => {});
+  return true;
+}
+
+function cleanAuthParamsFromUrl() {
+  const url = new URL(location.href);
+  const keys = ["code", "token_hash", "type", "error", "error_description", "error_code"];
+  let changed = false;
+  for (const key of keys) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (url.hash.includes("access_token") || url.hash.includes("error")) {
+    changed = true;
+  }
+  if (changed) history.replaceState({}, "", `${url.pathname}${url.search}`);
 }
 
 async function signIn(event) {
@@ -238,21 +288,72 @@ async function signIn(event) {
   }
   const sendBtn = $("send-link-btn");
   if (sendBtn) sendBtn.disabled = true;
-  setStatus("Sending magic link…");
+  setStatus("Sending sign-in code…");
   try {
     const { error } = await client.auth.signInWithOtp({
       email,
       options: {
+        // Keep redirect for link-based flows; OTP entry is the reliable path.
         emailRedirectTo: redirectTo(),
         shouldCreateUser: true,
       },
     });
-    if (error) setStatus(friendlyError(error.message), true);
-    else setStatus(`Check ${email} for the sign-in link. Then return here — this tab will update automatically.`);
+    if (error) {
+      setStatus(friendlyError(error.message), true);
+      return;
+    }
+    showOtpStep(email);
+    setStatus(`Check ${email} for a 6-digit code (and optionally a link). Enter the code here to finish signing in.`);
   } catch (err) {
     setStatus(friendlyError(err.message || "Could not send sign-in email"), true);
   } finally {
     if (sendBtn) sendBtn.disabled = false;
+  }
+}
+
+async function verifyOtpCode() {
+  const client = await ensureSupabase();
+  if (!client) {
+    setStatus("Sign-in is temporarily unavailable. Please try again later.", true);
+    return;
+  }
+  const email = (emailInput?.value || pendingEmail || "").trim();
+  const token = (otpInput?.value || "").replace(/\s+/g, "");
+  if (!email || !email.includes("@")) {
+    setStatus("Enter the same email you used to request the code.", true);
+    emailInput?.focus();
+    return;
+  }
+  if (!/^\d{6,8}$/.test(token)) {
+    setStatus("Enter the 6-digit code from your email.", true);
+    otpInput?.focus();
+    return;
+  }
+  const btn = $("verify-otp-btn");
+  if (btn) btn.disabled = true;
+  setStatus("Verifying code…");
+  try {
+    // Try common email OTP types; first-time signup may arrive as signup/magiclink.
+    const types = ["email", "magiclink", "signup"];
+    let session = null;
+    let lastError = null;
+    for (const type of types) {
+      const { data, error } = await client.auth.verifyOtp({ email, token, type });
+      if (!error && data.session) {
+        session = data.session;
+        break;
+      }
+      lastError = error;
+    }
+    if (!session) {
+      setStatus(friendlyError(lastError?.message || "Could not verify that code"), true);
+      return;
+    }
+    await applySession(session);
+  } catch (err) {
+    setStatus(friendlyError(err.message || "Could not verify that code"), true);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -269,30 +370,57 @@ async function syncSession() {
   const client = await ensureSupabase();
   if (!client) return;
 
-  // Finish PKCE / hash redirect from the magic link.
   const url = new URL(location.href);
   const code = url.searchParams.get("code");
+  const tokenHash = url.searchParams.get("token_hash");
+  const otpType = url.searchParams.get("type") || "email";
   const authError = url.searchParams.get("error_description") || url.searchParams.get("error");
-  if (authError) {
-    setStatus(friendlyError(decodeURIComponent(authError)), true);
-  } else if (code) {
-    const { data, error } = await client.auth.exchangeCodeForSession(code);
-    if (error) setStatus(friendlyError(error.message), true);
-    else if (data.session?.access_token) {
-      setSessionToken(data.session.access_token);
-      setStatus("Signed in.");
-    }
-  } else {
-    const { data } = await client.auth.getSession();
-    setSessionToken(data.session?.access_token || "");
-  }
 
-  if (code || authError || url.hash.includes("access_token") || url.hash.includes("error")) {
-    url.searchParams.delete("code");
-    url.searchParams.delete("error");
-    url.searchParams.delete("error_description");
-    url.searchParams.delete("error_code");
-    history.replaceState({}, "", `${url.pathname}${url.search}`);
+  // Hash tokens (implicit / some email confirm redirects).
+  const hashParams = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : "");
+  const hashToken = hashParams.get("access_token");
+  const hashError = hashParams.get("error_description") || hashParams.get("error");
+
+  try {
+    if (authError || hashError) {
+      setStatus(friendlyError(decodeURIComponent(authError || hashError)), true);
+      showOtpStep(pendingEmail || emailInput?.value || "");
+    } else if (tokenHash) {
+      const { data, error } = await client.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: otpType,
+      });
+      if (error) {
+        setStatus(friendlyError(error.message), true);
+        showOtpStep(pendingEmail || emailInput?.value || "");
+      } else {
+        await applySession(data.session);
+      }
+    } else if (code) {
+      const { data, error } = await client.auth.exchangeCodeForSession(code);
+      if (error) {
+        setStatus(friendlyError(error.message), true);
+        showOtpStep(pendingEmail || emailInput?.value || "");
+      } else {
+        await applySession(data.session);
+      }
+    } else if (hashToken) {
+      const { data, error } = await client.auth.setSession({
+        access_token: hashToken,
+        refresh_token: hashParams.get("refresh_token") || "",
+      });
+      if (error) {
+        setStatus(friendlyError(error.message), true);
+        showOtpStep(pendingEmail || emailInput?.value || "");
+      } else {
+        await applySession(data.session);
+      }
+    } else {
+      const { data } = await client.auth.getSession();
+      setSessionToken(data.session?.access_token || "");
+    }
+  } finally {
+    cleanAuthParamsFromUrl();
   }
 
   if (!authListenerBound) {
@@ -318,7 +446,12 @@ async function boot() {
     if (params.get("checkout") === "success") setStatus("Payment received. Your credits will appear shortly.");
     if (params.get("checkout") === "cancel") setStatus("Checkout canceled.");
     if (!accessToken && !params.get("checkout")) {
-      setStatus("Enter your email and we’ll send a magic link to sign in.");
+      if (pendingEmail) {
+        showOtpStep(pendingEmail);
+        setStatus("Enter the 6-digit code from your email to finish signing in.");
+      } else {
+        setStatus("Enter your email and we’ll send a 6-digit sign-in code.");
+      }
     }
   } catch (err) {
     setStatus("Sargam is temporarily unavailable. Please try again later.", true);
@@ -331,6 +464,13 @@ $("generate-btn").addEventListener("click", generate);
 $("signout-btn").addEventListener("click", signOut);
 $("duration").addEventListener("input", updateCostHint);
 authForm?.addEventListener("submit", signIn);
+$("verify-otp-btn")?.addEventListener("click", verifyOtpCode);
+otpInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    verifyOtpCode();
+  }
+});
 $("signin-btn")?.addEventListener("click", () => {
   authForm.hidden = false;
   emailInput?.focus();

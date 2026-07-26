@@ -46,12 +46,19 @@
         <input id="duration" type="number" min="5" max="180" value="30" />
         <small id="cost-hint">Uses about 1 credit per 30 seconds.</small>
       </label>
-      <form id="auth-form" class="auth-form" autocomplete="email">
+      <form id="auth-form" class="auth-form">
         <label class="field">
           <span>Email</span>
-          <input id="email" type="email" name="email" required placeholder="you@example.com" />
+          <input id="email" type="email" name="email" autocomplete="email" required placeholder="you@example.com" />
         </label>
-        <button type="submit" class="btn" id="send-link-btn">Send magic link</button>
+        <button type="submit" class="btn" id="send-link-btn">Send sign-in code</button>
+        <div id="otp-step" class="otp-step" hidden>
+          <label class="field">
+            <span>6-digit code from email</span>
+            <input id="otp" type="text" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="8" placeholder="123456" />
+          </label>
+          <button type="button" class="btn primary" id="verify-otp-btn">Sign in</button>
+        </div>
       </form>
       <div class="sargam-actions">
         <button type="button" class="btn primary" id="generate-btn">Generate</button>

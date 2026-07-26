@@ -69,7 +69,11 @@ Stripe → Developers → Webhooks → Add endpoint:
 Events: `checkout.session.completed`  
 Copy signing secret → Render env `STRIPE_WEBHOOK_SECRET` → redeploy.
 
-## 7. Supabase Auth redirect (required for magic-link sign-in)
+## 7. Supabase Auth (required for Sargam sign-in)
+
+Sargam signs in with a **6-digit email code** (OTP). Clicking the email link alone often only confirms the address if the link opens in a different browser than the one that requested sign-in (PKCE).
+
+### URL configuration
 
 Supabase Dashboard → **Authentication** → **URL configuration**:
 
@@ -81,6 +85,22 @@ Supabase Dashboard → **Authentication** → **URL configuration**:
   - `http://127.0.0.1:8000/sargam/**`
   - `http://localhost:8000/sargam/**`
 
-If Site URL is still `http://localhost:3000`, magic links from production will break (or send users to localhost).
+### Email template (required for the 6-digit code)
+
+Dashboard → **Authentication** → **Email templates** → **Magic Link**:
+
+```html
+<h2>Your Sargam sign-in code</h2>
+<p>Enter this code on the Sargam page:</p>
+<p style="font-size:24px;letter-spacing:4px"><strong>{{ .Token }}</strong></p>
+<p>Or open this link in the <em>same</em> browser where you requested sign-in:</p>
+<p><a href="{{ .ConfirmationURL }}">Sign in to Sargam</a></p>
+```
+
+Optional (works across browsers without typing a code) — use a token-hash link instead of `{{ .ConfirmationURL }}`:
+
+```html
+<p><a href="{{ .SiteURL }}/sargam/?token_hash={{ .TokenHash }}&type=email">Sign in to Sargam</a></p>
+```
 
 Also confirm **Authentication → Providers → Email** is enabled. On the free plan, Supabase rate-limits outbound auth email (~2/hour) until you attach custom SMTP.
