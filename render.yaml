@@ -69,6 +69,10 @@ services:
         sync: false
       - key: FAL_KEY
         sync: false
+      - key: SARGAM_UNLIMITED_EMAILS
+        sync: false
+      - key: SARGAM_ADMIN_SECRET
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY

@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     sargam_public_url: str = "https://swarsaathi.com/sargam/"
     # JSON map pack_id -> {credits, amount_cents, label}; overridable via env.
     sargam_credit_packs_json: str = ""
+    # Comma-separated emails that skip credit checks (internal testing only).
+    sargam_unlimited_emails: str = ""
+    # Shared secret for POST /api/v1/sargam/internal/grant-credits (empty = disabled).
+    sargam_admin_secret: str = ""
 
     def public_generation_modes(self) -> list[dict]:
         """Consumer-facing modes — never expose vendor/model ids here."""
@@ -118,6 +122,10 @@ class Settings(BaseSettings):
             {"id": "studio", "credits": 100, "amount_cents": 3900, "label": "Studio · 100 credits"},
             {"id": "label", "credits": 500, "amount_cents": 14900, "label": "Label · 500 credits"},
         ]
+
+    @property
+    def sargam_unlimited_email_set(self) -> set[str]:
+        return {e.strip().lower() for e in self.sargam_unlimited_emails.split(",") if e.strip()}
 
 
 settings = Settings()

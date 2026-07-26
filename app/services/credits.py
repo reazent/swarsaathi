@@ -16,6 +16,13 @@ def credits_for_duration(duration_sec: float) -> int:
     return max(1, int(math.ceil(seconds / per)))
 
 
+def is_unlimited(email: str | None) -> bool:
+    """Internal test accounts listed in SARGAM_UNLIMITED_EMAILS skip metering."""
+    if not email:
+        return False
+    return email.strip().lower() in settings.sargam_unlimited_email_set
+
+
 def get_or_create_account(db: Session, user_id: str, email: str | None = None) -> CreditAccount:
     row = db.get(CreditAccount, user_id)
     if row is None:

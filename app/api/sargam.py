@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_client_id
 from app.config import settings
-from app.db.models import SargamGeneration
+from app.db.models import CreditAccount, SargamGeneration
 from app.db.session import get_db
 from app.services import credits
 from app.services.fal_audio import FalError, generate_clip_audio, generate_song_audio
@@ -69,10 +69,16 @@ class MeOut(BaseModel):
     packs: list[dict]
     modes: list[dict]
     stripe_publishable_key: str
+    unlimited: bool = False
 
 
 class CheckoutIn(BaseModel):
     pack_id: str
+
+
+class GrantCreditsIn(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    credits: int = Field(default=50, ge=1, le=10_000)
 
 
 class SendCodeIn(BaseModel):
@@ -261,21 +267,24 @@ def sargam_me(
             packs=settings.credit_packs(),
             modes=settings.public_generation_modes(),
             stripe_publishable_key=settings.stripe_publishable_key,
+            unlimited=False,
         )
 
     account = credits.get_or_create_account(db, user.user_id, email=user.email)
+    unlimited = credits.is_unlimited(user.email)
     return MeOut(
         product=settings.product_name,
         user_id=user.user_id,
         email=user.email,
         is_anonymous=user.is_anonymous,
-        credits=account.balance,
+        credits=9999 if unlimited else account.balance,
         seconds_per_credit=settings.sargam_seconds_per_credit,
         max_duration_sec=settings.sargam_max_duration_sec,
         free_credits_on_signup=settings.sargam_free_credits,
         packs=settings.credit_packs(),
         modes=settings.public_generation_modes(),
         stripe_publishable_key=settings.stripe_publishable_key,
+        unlimited=unlimited,
     )
 
 
@@ -309,9 +318,10 @@ def sargam_generate(
         else settings.sargam_max_duration_sec
     )
     duration = min(float(body.duration), float(max_dur))
-    cost = credits.credits_for_duration(duration)
+    unlimited = credits.is_unlimited(user.email)
+    cost = 0 if unlimited else credits.credits_for_duration(duration)
     credits.get_or_create_account(db, user.user_id, email=user.email)
-    if credits.balance(db, user.user_id) < cost:
+    if not unlimited and credits.balance(db, user.user_id) < cost:
         raise HTTPException(
             status_code=402,
             detail={
@@ -340,13 +350,14 @@ def sargam_generate(
     db.add(row)
     db.commit()
 
-    try:
-        credits.debit(db, user.user_id, cost, reason="generate", ref=gen_id)
-    except ValueError:
-        row.status = "failed"
-        row.error = "insufficient_credits"
-        db.commit()
-        raise HTTPException(status_code=402, detail={"error": "insufficient_credits", "upgrade": True})
+    if cost > 0:
+        try:
+            credits.debit(db, user.user_id, cost, reason="generate", ref=gen_id)
+        except ValueError:
+            row.status = "failed"
+            row.error = "insufficient_credits"
+            db.commit()
+            raise HTTPException(status_code=402, detail={"error": "insufficient_credits", "upgrade": True})
 
     try:
         if mode == "song":
@@ -373,13 +384,15 @@ def sargam_generate(
         row.status = "failed"
         row.error = str(exc)[:1000]
         db.commit()
-        credits.refund(db, user.user_id, cost, ref=gen_id)
+        if cost > 0:
+            credits.refund(db, user.user_id, cost, ref=gen_id)
         raise HTTPException(status_code=502, detail=_public_generate_error(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         row.status = "failed"
         row.error = str(exc)[:1000]
         db.commit()
-        credits.refund(db, user.user_id, cost, ref=gen_id)
+        if cost > 0:
+            credits.refund(db, user.user_id, cost, ref=gen_id)
         raise HTTPException(
             status_code=502,
             detail="Generation failed. Please try again.",
@@ -422,6 +435,42 @@ def sargam_generation(
         seed=row.seed,
         error=public_error,
     )
+
+
+@router.post("/internal/grant-credits")
+def sargam_grant_credits(
+    body: GrantCreditsIn,
+    db: Session = Depends(get_db),
+    x_sargam_admin_secret: str | None = Header(default=None),
+) -> dict:
+    """Top up a signed-up account for internal tests. Disabled unless SARGAM_ADMIN_SECRET is set."""
+    secret = settings.sargam_admin_secret.strip()
+    if not secret or not x_sargam_admin_secret or x_sargam_admin_secret != secret:
+        raise HTTPException(status_code=404, detail="Not found")
+    email = body.email.strip().lower()
+    row = (
+        db.query(CreditAccount)
+        .filter(CreditAccount.email == email)
+        .order_by(CreditAccount.created_at.desc())
+        .first()
+    )
+    if row is None:
+        # Match by email on any account row (case-insensitive fallback).
+        rows = db.query(CreditAccount).filter(CreditAccount.email.isnot(None)).all()
+        row = next((r for r in rows if (r.email or "").lower() == email), None)
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No credit account for that email yet — sign in once on Sargam first.",
+        )
+    new_balance = credits.credit(
+        db,
+        row.user_id,
+        int(body.credits),
+        reason="internal_grant",
+        ref=f"internal_grant:{email}:{uuid.uuid4().hex[:8]}",
+    )
+    return {"email": email, "user_id": row.user_id, "credits": new_balance}
 
 
 @router.post("/checkout")
