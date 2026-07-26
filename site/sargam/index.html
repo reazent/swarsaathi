@@ -57,7 +57,7 @@
               <span class="visually-hidden">Email</span>
               <input id="email" type="email" name="email" autocomplete="email" required placeholder="you@example.com" />
             </label>
-            <button type="button" class="btn primary" id="send-code-btn">Email me a code</button>
+            <button type="submit" class="btn primary" id="send-code-btn">Email me a code</button>
           </li>
 
           <li id="step-otp" class="auth-step" hidden>
@@ -121,6 +121,17 @@
     <div><strong>Legal</strong><a href="/privacy.html">Privacy</a><a href="/support.html">Support</a></div>
   </footer>
 
-  <script type="module" src="/sargam/sargam.js"></script>
+  <script type="module" src="/sargam/sargam.js?v=20260726b"></script>
+  <script>
+    // Surface a clear error if the module never boots (CDN/cache/network).
+    setTimeout(function () {
+      if (window.__sargamReady) return;
+      var el = document.getElementById("auth-status");
+      if (el && !el.textContent) {
+        el.textContent = "Sign-in script did not load. Hard-refresh this page (Cmd-Shift-R / Ctrl-Shift-R).";
+        el.classList.add("is-error");
+      }
+    }, 3500);
+  </script>
 </body>
 </html>
