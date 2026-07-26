@@ -35,6 +35,14 @@
   color: var(--ink);
 }
 .field small { color: var(--muted); }
+.auth-form {
+  display: grid;
+  gap: .75rem;
+  margin-top: 1rem;
+  padding-top: .25rem;
+}
+.auth-form .field { margin: 0; }
+.auth-form .btn { justify-self: start; }
 .sargam-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
 .btn {
   display: inline-flex;

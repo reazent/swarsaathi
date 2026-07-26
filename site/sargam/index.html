@@ -8,7 +8,6 @@
   <title>Sargam — SwarSaathi</title>
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/sargam/sargam.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -47,9 +46,16 @@
         <input id="duration" type="number" min="5" max="180" value="30" />
         <small id="cost-hint">Uses about 1 credit per 30 seconds.</small>
       </label>
+      <form id="auth-form" class="auth-form" autocomplete="email">
+        <label class="field">
+          <span>Email</span>
+          <input id="email" type="email" name="email" required placeholder="you@example.com" />
+        </label>
+        <button type="submit" class="btn" id="send-link-btn">Send magic link</button>
+      </form>
       <div class="sargam-actions">
         <button type="button" class="btn primary" id="generate-btn">Generate</button>
-        <button type="button" class="btn" id="signin-btn">Sign in</button>
+        <button type="button" class="btn" id="signin-btn" hidden>Sign in</button>
         <button type="button" class="btn" id="signout-btn" hidden>Sign out</button>
       </div>
       <p id="status" class="sargam-status" role="status"></p>

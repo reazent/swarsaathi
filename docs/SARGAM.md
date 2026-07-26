@@ -22,7 +22,9 @@ Fal list price is roughly a few cents per clip; packs include margin for failed 
 - `POST /api/v1/sargam/checkout` — Stripe Checkout for a pack
 - `POST /api/v1/billing/stripe/webhook` — grants credits on `checkout.session.completed`
 
-Auth: Supabase Bearer token. In `APP_ENV=development`, anonymous `X-Client-Id` sessions are allowed for local testing.
+Auth: Supabase magic-link → Bearer token on API calls. In production, `/me` works signed-out (0 credits); generate/checkout require sign-in. In `APP_ENV=development`, anonymous `X-Client-Id` sessions are allowed for local testing.
+
+**Supabase checklist (production sign-in):** Site URL `https://swarsaathi.com` and redirect allow list including `https://swarsaathi.com/sargam/**` — see `docs/RENDER.md` §7.
 
 ## Local run
 

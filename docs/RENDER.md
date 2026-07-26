@@ -69,9 +69,18 @@ Stripe → Developers → Webhooks → Add endpoint:
 Events: `checkout.session.completed`  
 Copy signing secret → Render env `STRIPE_WEBHOOK_SECRET` → redeploy.
 
-## 7. Supabase Auth redirect
+## 7. Supabase Auth redirect (required for magic-link sign-in)
 
-Supabase → Authentication → URL configuration:
+Supabase Dashboard → **Authentication** → **URL configuration**:
 
-- Site URL: `https://swarsaathi.com`  
-- Redirect allow list: `https://swarsaathi.com/sargam/**`
+- **Site URL:** `https://swarsaathi.com`
+- **Redirect URLs** (add all):
+  - `https://swarsaathi.com/sargam`
+  - `https://swarsaathi.com/sargam/**`
+  - `https://www.swarsaathi.com/sargam/**`
+  - `http://127.0.0.1:8000/sargam/**`
+  - `http://localhost:8000/sargam/**`
+
+If Site URL is still `http://localhost:3000`, magic links from production will break (or send users to localhost).
+
+Also confirm **Authentication → Providers → Email** is enabled. On the free plan, Supabase rate-limits outbound auth email (~2/hour) until you attach custom SMTP.

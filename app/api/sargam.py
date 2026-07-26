@@ -68,13 +68,18 @@ def _public_generate_error(exc: Exception) -> str:
     return "Generation failed. Please try again."
 
 
+def _bearer_token(authorization: str | None) -> str | None:
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        return token or None
+    return None
+
+
 def resolve_sargam_user(
     request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> SargamUser:
-    token = None
-    if authorization and authorization.lower().startswith("bearer "):
-        token = authorization.split(" ", 1)[1].strip()
+    token = _bearer_token(authorization)
     if token:
         try:
             user = user_from_access_token(token)
@@ -90,6 +95,30 @@ def resolve_sargam_user(
     raise HTTPException(status_code=401, detail="Sign in required")
 
 
+def resolve_sargam_user_optional(
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> SargamUser | None:
+    """Signed-in user, or None when production visitors are signed out.
+
+    /me must succeed without auth so the marketing UI can render packs and the
+    sign-in form. Generate/checkout still use resolve_sargam_user.
+    """
+    token = _bearer_token(authorization)
+    if token:
+        try:
+            user = user_from_access_token(token)
+            return SargamUser(user_id=user.user_id, email=user.email, is_anonymous=False)
+        except AuthError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    if settings.is_dev or not settings.supabase_url:
+        cid = get_client_id(request)
+        return SargamUser(user_id=f"anon:{cid}", email=None, is_anonymous=True)
+
+    return None
+
+
 @router.get("/config")
 def sargam_config() -> dict:
     """Public client config (Supabase anon key is designed to be public)."""
@@ -100,14 +129,30 @@ def sargam_config() -> dict:
         "stripe_publishable_key": settings.stripe_publishable_key,
         "seconds_per_credit": settings.sargam_seconds_per_credit,
         "max_duration_sec": settings.sargam_max_duration_sec,
+        "free_credits_on_signup": settings.sargam_free_credits,
+        "packs": settings.credit_packs(),
     }
 
 
 @router.get("/me", response_model=MeOut)
 def sargam_me(
-    user: SargamUser = Depends(resolve_sargam_user),
+    user: SargamUser | None = Depends(resolve_sargam_user_optional),
     db: Session = Depends(get_db),
 ) -> MeOut:
+    if user is None:
+        return MeOut(
+            product=settings.product_name,
+            user_id="",
+            email=None,
+            is_anonymous=True,
+            credits=0,
+            seconds_per_credit=settings.sargam_seconds_per_credit,
+            max_duration_sec=settings.sargam_max_duration_sec,
+            free_credits_on_signup=settings.sargam_free_credits,
+            packs=settings.credit_packs(),
+            stripe_publishable_key=settings.stripe_publishable_key,
+        )
+
     account = credits.get_or_create_account(db, user.user_id, email=user.email)
     return MeOut(
         product=settings.product_name,

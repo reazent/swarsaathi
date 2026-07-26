@@ -1,3 +1,5 @@
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
 const metaApi = document.querySelector('meta[name="swarsaathi-api"]')?.content?.trim();
 function defaultApiBase() {
   if (metaApi) return metaApi;
@@ -7,7 +9,6 @@ function defaultApiBase() {
   if (host === "localhost" || host === "127.0.0.1") {
     return location.port === "8000" ? "" : "http://127.0.0.1:8000";
   }
-  // Same-origin (API reverse-proxy) or set <meta name="swarsaathi-api">.
   return "";
 }
 const API_BASE = defaultApiBase();
@@ -18,11 +19,14 @@ const creditChip = $("credit-chip");
 const authChip = $("auth-chip");
 const packsEl = $("packs");
 const player = $("player");
+const emailInput = $("email");
+const authForm = $("auth-form");
 
 let accessToken = localStorage.getItem("sargam_access_token") || "";
 let supabase = null;
 let config = null;
 let me = null;
+let authListenerBound = false;
 
 function setStatus(msg, isError = false) {
   statusEl.textContent = msg || "";
@@ -43,8 +47,11 @@ function friendlyError(msg, status) {
   if (text.includes("api base") || text.includes("could not reach")) {
     return "Sargam is temporarily unavailable. Please try again later.";
   }
-  if (text.includes("supabase")) {
-    return "Sign-in is temporarily unavailable. Please try again later.";
+  if (text.includes("redirect") || text.includes("redirect_to")) {
+    return "Sign-in redirect is not configured yet. Add https://swarsaathi.com/sargam/** in Supabase Auth URL settings.";
+  }
+  if (text.includes("rate limit") || text.includes("email rate")) {
+    return "Too many sign-in emails. Wait a few minutes and try again.";
   }
   return msg || "Something went wrong.";
 }
@@ -62,6 +69,11 @@ function clientId() {
     localStorage.setItem("swarsaathi_client_id", id);
   }
   return id;
+}
+
+function redirectTo() {
+  const path = location.pathname.endsWith("/") ? location.pathname : `${location.pathname}/`;
+  return `${location.origin}${path}`;
 }
 
 async function api(path, opts = {}) {
@@ -93,6 +105,8 @@ function renderPacks(packs) {
     btn.type = "button";
     btn.className = "btn primary";
     btn.textContent = "Buy";
+    btn.disabled = !accessToken;
+    btn.title = accessToken ? "" : "Sign in to buy credits";
     btn.addEventListener("click", () => buyPack(pack.id));
     row.appendChild(btn);
     packsEl.appendChild(row);
@@ -106,20 +120,37 @@ function updateCostHint() {
   $("cost-hint").textContent = `This generation will use about ${cost} credit${cost === 1 ? "" : "s"} (${per}s per credit).`;
 }
 
+function applySignedOutUi() {
+  creditChip.textContent = "0 credits";
+  authChip.textContent = "Sign in to generate";
+  $("signin-btn").hidden = true;
+  $("signout-btn").hidden = true;
+  if (authForm) authForm.hidden = false;
+  renderPacks(config?.packs || me?.packs || []);
+  updateCostHint();
+}
+
 async function refreshMe() {
   me = await api("/api/v1/sargam/me");
   creditChip.textContent = `${me.credits} credit${me.credits === 1 ? "" : "s"}`;
-  authChip.textContent = me.is_anonymous
-    ? "Guest"
-    : (me.email ? `Signed in as ${me.email}` : "Signed in");
-  $("signin-btn").hidden = !me.is_anonymous && Boolean(accessToken);
-  $("signout-btn").hidden = me.is_anonymous || !accessToken;
+  const signedIn = Boolean(accessToken) && !me.is_anonymous;
+  authChip.textContent = signedIn
+    ? (me.email ? `Signed in as ${me.email}` : "Signed in")
+    : "Sign in to generate";
+  $("signin-btn").hidden = true;
+  $("signout-btn").hidden = !signedIn;
+  if (authForm) authForm.hidden = signedIn;
   $("duration").max = me.max_duration_sec || 180;
   renderPacks(me.packs);
   updateCostHint();
 }
 
 async function buyPack(packId) {
+  if (!accessToken) {
+    setStatus("Sign in with email first, then buy credits.", true);
+    emailInput?.focus();
+    return;
+  }
   try {
     setStatus("Opening checkout…");
     const out = await api("/api/v1/sargam/checkout", {
@@ -133,6 +164,11 @@ async function buyPack(packId) {
 }
 
 async function generate() {
+  if (!accessToken) {
+    setStatus("Sign in with email first to generate audio.", true);
+    emailInput?.focus();
+    return;
+  }
   const prompt = $("prompt").value.trim();
   const duration = Number($("duration").value || 30);
   if (prompt.length < 3) {
@@ -166,70 +202,137 @@ async function generate() {
 }
 
 async function ensureSupabase() {
-  if (!config?.supabase_url || !config?.supabase_anon_key || !window.supabase) return null;
+  if (!config?.supabase_url || !config?.supabase_anon_key) return null;
   if (!supabase) {
-    supabase = window.supabase.createClient(config.supabase_url, config.supabase_anon_key);
+    supabase = createClient(config.supabase_url, config.supabase_anon_key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        // We exchange ?code= ourselves in syncSession to avoid double-consume.
+        detectSessionInUrl: false,
+        flowType: "pkce",
+      },
+    });
   }
   return supabase;
 }
 
-async function signIn() {
+function setSessionToken(token) {
+  accessToken = token || "";
+  if (accessToken) localStorage.setItem("sargam_access_token", accessToken);
+  else localStorage.removeItem("sargam_access_token");
+}
+
+async function signIn(event) {
+  event?.preventDefault?.();
   const client = await ensureSupabase();
   if (!client) {
     setStatus("Sign-in is temporarily unavailable. Please try again later.", true);
     return;
   }
-  const email = window.prompt("Email for magic link sign-in:");
-  if (!email) return;
-  const { error } = await client.auth.signInWithOtp({
-    email: email.trim(),
-    options: { emailRedirectTo: `${location.origin}${location.pathname}` },
-  });
-  if (error) setStatus(error.message, true);
-  else setStatus("Check your email for the sign-in link.");
+  const email = (emailInput?.value || "").trim();
+  if (!email || !email.includes("@")) {
+    setStatus("Enter a valid email address.", true);
+    emailInput?.focus();
+    return;
+  }
+  const sendBtn = $("send-link-btn");
+  if (sendBtn) sendBtn.disabled = true;
+  setStatus("Sending magic link…");
+  try {
+    const { error } = await client.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo(),
+        shouldCreateUser: true,
+      },
+    });
+    if (error) setStatus(friendlyError(error.message), true);
+    else setStatus(`Check ${email} for the sign-in link. Then return here — this tab will update automatically.`);
+  } catch (err) {
+    setStatus(friendlyError(err.message || "Could not send sign-in email"), true);
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
+  }
 }
 
 async function signOut() {
   const client = await ensureSupabase();
   if (client) await client.auth.signOut();
-  accessToken = "";
-  localStorage.removeItem("sargam_access_token");
-  await refreshMe();
+  setSessionToken("");
+  me = null;
+  applySignedOutUi();
   setStatus("Signed out.");
 }
 
 async function syncSession() {
   const client = await ensureSupabase();
   if (!client) return;
-  const { data } = await client.auth.getSession();
-  const token = data.session?.access_token || "";
-  accessToken = token;
-  if (token) localStorage.setItem("sargam_access_token", token);
-  else localStorage.removeItem("sargam_access_token");
-  client.auth.onAuthStateChange((_event, session) => {
-    accessToken = session?.access_token || "";
-    if (accessToken) localStorage.setItem("sargam_access_token", accessToken);
-    else localStorage.removeItem("sargam_access_token");
-    refreshMe().catch(() => {});
-  });
+
+  // Finish PKCE / hash redirect from the magic link.
+  const url = new URL(location.href);
+  const code = url.searchParams.get("code");
+  const authError = url.searchParams.get("error_description") || url.searchParams.get("error");
+  if (authError) {
+    setStatus(friendlyError(decodeURIComponent(authError)), true);
+  } else if (code) {
+    const { data, error } = await client.auth.exchangeCodeForSession(code);
+    if (error) setStatus(friendlyError(error.message), true);
+    else if (data.session?.access_token) {
+      setSessionToken(data.session.access_token);
+      setStatus("Signed in.");
+    }
+  } else {
+    const { data } = await client.auth.getSession();
+    setSessionToken(data.session?.access_token || "");
+  }
+
+  if (code || authError || url.hash.includes("access_token") || url.hash.includes("error")) {
+    url.searchParams.delete("code");
+    url.searchParams.delete("error");
+    url.searchParams.delete("error_description");
+    url.searchParams.delete("error_code");
+    history.replaceState({}, "", `${url.pathname}${url.search}`);
+  }
+
+  if (!authListenerBound) {
+    authListenerBound = true;
+    client.auth.onAuthStateChange((_event, session) => {
+      setSessionToken(session?.access_token || "");
+      refreshMe().catch(() => applySignedOutUi());
+    });
+  }
 }
 
 async function boot() {
   try {
     config = await api("/api/v1/sargam/config");
     await syncSession();
-    await refreshMe();
+    try {
+      await refreshMe();
+    } catch (err) {
+      if (err.status === 401) applySignedOutUi();
+      else throw err;
+    }
     const params = new URLSearchParams(location.search);
     if (params.get("checkout") === "success") setStatus("Payment received. Your credits will appear shortly.");
     if (params.get("checkout") === "cancel") setStatus("Checkout canceled.");
+    if (!accessToken && !params.get("checkout")) {
+      setStatus("Enter your email and we’ll send a magic link to sign in.");
+    }
   } catch (err) {
     setStatus("Sargam is temporarily unavailable. Please try again later.", true);
     authChip.textContent = "Unavailable";
+    applySignedOutUi();
   }
 }
 
 $("generate-btn").addEventListener("click", generate);
-$("signin-btn").addEventListener("click", signIn);
 $("signout-btn").addEventListener("click", signOut);
 $("duration").addEventListener("input", updateCostHint);
+authForm?.addEventListener("submit", signIn);
+$("signin-btn")?.addEventListener("click", () => {
+  authForm.hidden = false;
+  emailInput?.focus();
+});
 boot();
