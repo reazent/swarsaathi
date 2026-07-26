@@ -4,8 +4,10 @@ Text-to-audio product on SwarSaathi with two **consumer modes** (model names sta
 
 | UI mode | Purpose | Engine (server-side) |
 | --- | --- | --- |
-| **Full song** | Complete tracks, optional lyrics | Fal `fal-ai/ace-step` (+ `prompt-to-audio`). Target HF: `ACE-Step/acestep-v15-xl-turbo` |
+| **Full song** | Complete tracks with optional lyrics/vocals | Fal `fal-ai/ace-step` (+ `prompt-to-audio`). Supports lyrics; Fal does **not** document this as `acestep-v15-xl-turbo` specifically (API looks like classic ACE-Step: ~27 steps / CFG knobs). Target HF for future self-host: `ACE-Step/acestep-v15-xl-turbo` |
 | **Music sketch** | Short beds / textures | Fal Stable Audio 3 Medium |
+
+**Vocals:** leave lyrics blank to auto-write sung lyrics, paste lyrics for control, or tick Instrumental for no vocals.
 
 ## Pricing (v1)
 
