@@ -6,11 +6,22 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import settings
 from app.db.models import Base
 
+
+def _database_url() -> str:
+    url = settings.database_url
+    # Prefer psycopg v3 driver when URL omits a dialect driver.
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url[len("postgresql://") :]
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url[len("postgres://") :]
+    return url
+
+
 connect_args = {}
 if settings.database_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
-engine = create_engine(settings.database_url, connect_args=connect_args, pool_pre_ping=True)
+engine = create_engine(_database_url(), connect_args=connect_args, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

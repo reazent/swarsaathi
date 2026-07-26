@@ -69,9 +69,15 @@ each, and where it goes in `.env`. Do the **Now** block first; the rest can wait
 
 ## WHEN VOCAL SEPARATION / TRAINING TURNS ON
 
-### 11. Modal or Replicate (serverless GPU)
+### 11. Fal (Sargam / Stable Audio — current)
+- Sign up: https://fal.ai · create API key → `FAL_KEY`
+- Model: `fal-ai/stable-audio-3/medium/text-to-audio`
+- Product UI: `/sargam/` · API: `/api/v1/sargam/*`
+- Stripe credit packs via `/api/v1/sargam/checkout` + webhook `/api/v1/billing/stripe/webhook`
+
+### 12. Modal or Replicate (later fine-tune / other GPU jobs)
 - Modal: https://modal.com/signup  · Replicate: https://replicate.com (sign in with GitHub)
-- Grab the API token. Used for Demucs/Sa-classifier jobs — pay per second.
+- Grab the API token. Used for Demucs/Sa-classifier jobs and future fine-tunes — pay per second.
 
 ---
 

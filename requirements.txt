@@ -2,6 +2,9 @@
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 pydantic-settings>=2.6.0
+httpx>=0.27.0
+stripe>=11.0.0
+sentry-sdk[fastapi]>=2.0.0
 
 # Database (PostgreSQL in production, SQLite for local dev)
 sqlalchemy>=2.0.36

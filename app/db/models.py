@@ -64,3 +64,49 @@ class UsageCounter(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class CreditAccount(Base):
+    """Sargam credit balance keyed by auth user id (or anon:{client_id} in dev)."""
+
+    __tablename__ = "credit_accounts"
+
+    user_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    balance: Mapped[int] = mapped_column(Integer, default=0)
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class CreditLedger(Base):
+    """Append-only credit movements for Sargam."""
+
+    __tablename__ = "credit_ledger"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(128), index=True)
+    delta: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(64))
+    ref: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SargamGeneration(Base):
+    """One Stable Audio generation request."""
+
+    __tablename__ = "sargam_generations"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(128), index=True)
+    prompt: Mapped[str] = mapped_column(Text)
+    duration_sec: Mapped[float] = mapped_column(Float, default=30.0)
+    credits_charged: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(32), default="pending")
+    fal_request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    audio_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
