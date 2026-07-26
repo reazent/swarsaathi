@@ -66,7 +66,17 @@ Update:
 - Tracking: no, unless analytics are configured in a tracking manner.
 - Data sale: no.
 
-## 6. Submit TestFlight
+## 6. Xcode Cloud
+
+Capacitor iOS SPM packages live under `web/node_modules` (gitignored). Xcode Cloud must install them before resolving packages.
+
+Script (already in repo): `web/ios/App/ci_scripts/ci_post_clone.sh`
+
+It runs `npm ci`, `npm run build:mobile`, and `npx cap sync ios` in `web/`.
+
+In App Store Connect → Xcode Cloud → your workflow, confirm Post-Clone is enabled (custom scripts next to `App.xcodeproj` are picked up automatically). If a build still fails on missing `@capacitor/filesystem` / `@capacitor/share`, re-run after this script is on the branch Xcode Cloud builds.
+
+## 7. Submit TestFlight
 
 In Xcode:
 
@@ -76,7 +86,7 @@ In Xcode:
 4. In App Store Connect, add internal testers.
 5. Test on at least one real iPhone before public submission.
 
-## 7. After App Store approval
+## 8. After App Store approval
 
 Update `site/release.json` and `site/release-links.js` fallback:
 

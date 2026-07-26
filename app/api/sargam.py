@@ -19,7 +19,12 @@ from app.db.session import get_db
 from app.services import credits
 from app.services.fal_audio import FalError, generate_text_to_audio
 from app.services.resend_email import EmailError, send_sargam_sign_in_code
-from app.services.supabase_auth import AuthError, generate_sign_in_otp, user_from_access_token
+from app.services.supabase_auth import (
+    AuthError,
+    generate_sign_in_otp,
+    user_from_access_token,
+    verify_sign_in_otp,
+)
 
 router = APIRouter(prefix="/api/v1/sargam", tags=["sargam"])
 
@@ -68,9 +73,17 @@ class SendCodeIn(BaseModel):
     email: str = Field(min_length=3, max_length=320)
 
 
+class VerifyCodeIn(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    token: str = Field(min_length=4, max_length=16)
+    verification_type: str | None = None
+
+
 # Simple process-local throttle for OTP sends (Render free = one instance).
 _OTP_SEND_AT: dict[str, float] = {}
 _OTP_COOLDOWN_SEC = 60
+# email -> last verification_type from generate_link (helps verify-code).
+_OTP_TYPE_AT: dict[str, str] = {}
 
 
 def _public_generate_error(exc: Exception) -> str:
@@ -179,18 +192,47 @@ def sargam_send_code(body: SendCodeIn) -> dict:
         raise HTTPException(status_code=502, detail="Could not send the sign-in email. Try again.") from exc
 
     _OTP_SEND_AT[email] = now
+    _OTP_TYPE_AT[email] = otp.verification_type
     # Bound memory on long-lived processes.
     if len(_OTP_SEND_AT) > 5000:
         cutoff = now - 3600
         for key, ts in list(_OTP_SEND_AT.items()):
             if ts < cutoff:
                 _OTP_SEND_AT.pop(key, None)
+                _OTP_TYPE_AT.pop(key, None)
 
     return {
         "ok": True,
         "email": otp.email,
         # Lets the client verify with the correct Supabase OTP type first.
         "verification_type": otp.verification_type,
+        "otp_length": len(otp.email_otp),
+    }
+
+
+@router.post("/auth/verify-code")
+def sargam_verify_code(body: VerifyCodeIn) -> dict:
+    """Verify email OTP server-side and return session tokens for the browser."""
+    email = str(body.email).strip().lower()
+    token = re.sub(r"\D", "", str(body.token or ""))
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        raise HTTPException(status_code=400, detail="Enter a valid email address.")
+    if not re.fullmatch(r"\d{6,8}", token):
+        raise HTTPException(status_code=400, detail="Enter the full code from your email.")
+
+    preferred = (body.verification_type or _OTP_TYPE_AT.get(email) or "").strip() or None
+    try:
+        session = verify_sign_in_otp(email, token, preferred_type=preferred)
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc) or "Could not verify that code.") from exc
+
+    _OTP_TYPE_AT.pop(email, None)
+    return {
+        "ok": True,
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+        "email": session.email,
+        "user_id": session.user_id,
     }
 
 

@@ -42,13 +42,14 @@ def send_email(*, to: str, subject: str, html: str, text: str | None = None) -> 
 
 def send_sargam_sign_in_code(*, to: str, code: str) -> None:
     subject = f"Your {settings.product_name} sign-in code"
+    digits = len(code)
     html = f"""
 <div style="font-family:Georgia,serif;line-height:1.5;color:#222;max-width:520px">
   <h2 style="margin:0 0 12px">{settings.product_name} sign-in</h2>
-  <p style="margin:0 0 12px">Enter this code on the Sargam page:</p>
+  <p style="margin:0 0 12px">Enter this {digits}-digit code on the Sargam Sign in panel:</p>
   <p style="font-size:28px;letter-spacing:6px;font-weight:700;margin:16px 0">{code}</p>
   <p style="margin:0;color:#666;font-size:14px">This code expires shortly. If you did not request it, you can ignore this email.</p>
 </div>
 """.strip()
-    text = f"Your {settings.product_name} sign-in code is {code}"
+    text = f"Your {settings.product_name} sign-in code is {code} ({digits} digits). Enter it on the Sargam page."
     send_email(to=to, subject=subject, html=html, text=text)

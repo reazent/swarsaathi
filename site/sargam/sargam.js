@@ -39,7 +39,9 @@ let me = null;
 let authListenerBound = false;
 let pendingEmail = localStorage.getItem("sargam_pending_email") || "";
 let pendingOtpType = localStorage.getItem("sargam_pending_otp_type") || "";
+let pendingOtpLength = Number(localStorage.getItem("sargam_pending_otp_length") || "8") || 8;
 let authPhase = "email"; // email | otp | signed_in
+let verifying = false;
 
 function setStatus(msg, isError = false) {
   statusEl.textContent = msg || "";
@@ -315,8 +317,10 @@ function setSessionToken(token) {
     localStorage.setItem("sargam_access_token", accessToken);
     localStorage.removeItem("sargam_pending_email");
     localStorage.removeItem("sargam_pending_otp_type");
+    localStorage.removeItem("sargam_pending_otp_length");
     pendingEmail = "";
     pendingOtpType = "";
+    pendingOtpLength = 8;
   } else {
     localStorage.removeItem("sargam_access_token");
   }
@@ -366,10 +370,18 @@ async function sendCode(event) {
       body: JSON.stringify({ email }),
     });
     pendingOtpType = out.verification_type || "";
+    pendingOtpLength = Number(out.otp_length || 8) || 8;
     if (pendingOtpType) localStorage.setItem("sargam_pending_otp_type", pendingOtpType);
-    if (otpInput) otpInput.value = "";
+    localStorage.setItem("sargam_pending_otp_length", String(pendingOtpLength));
+    if (otpInput) {
+      otpInput.value = "";
+      otpInput.maxLength = pendingOtpLength;
+      otpInput.placeholder = "•".repeat(pendingOtpLength);
+    }
     setAuthPhase("otp", { email: out.email || email, focus: true });
-    setAuthStatus(`Code sent to ${out.email || email}. Check your inbox (and spam), then enter it in step 2.`);
+    setAuthStatus(
+      `Code sent to ${out.email || email}. Enter all ${pendingOtpLength} digits in step 2 (check spam if needed).`,
+    );
     focusAuth();
   } catch (err) {
     setAuthStatus(friendlyError(err.message || "Could not send sign-in email"), true);
@@ -380,47 +392,50 @@ async function sendCode(event) {
 }
 
 async function verifyOtpCode() {
-  const client = await ensureSupabase();
-  if (!client) {
-    setAuthStatus("Sign-in is temporarily unavailable. Please try again later.", true);
-    return;
-  }
+  if (verifying) return;
   const email = (emailInput?.value || pendingEmail || "").trim().toLowerCase();
-  const token = (otpInput?.value || "").replace(/\s+/g, "");
+  const token = (otpInput?.value || "").replace(/\D/g, "");
+  const need = pendingOtpLength || 8;
   if (!email || !email.includes("@")) {
     setAuthStatus("Enter the same email you used to request the code.", true);
     setAuthPhase("email");
     return;
   }
-  if (!/^\d{6,8}$/.test(token)) {
-    setAuthStatus("Enter the full code from your email.", true);
+  if (token.length < need) {
+    setAuthStatus(`Enter all ${need} digits from your email.`, true);
     otpInput?.focus();
     return;
   }
   const btn = $("verify-otp-btn");
   if (btn) btn.disabled = true;
+  verifying = true;
   setAuthStatus("Verifying…");
   try {
-    const preferred = pendingOtpType || localStorage.getItem("sargam_pending_otp_type") || "";
-    const types = [...new Set([preferred, "email", "magiclink", "signup"].filter(Boolean))];
-    let session = null;
-    let lastError = null;
-    for (const type of types) {
-      const { data, error } = await client.auth.verifyOtp({ email, token, type });
-      if (!error && data.session) {
-        session = data.session;
-        break;
-      }
-      lastError = error;
+    const out = await api("/api/v1/sargam/auth/verify-code", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        token,
+        verification_type: pendingOtpType || localStorage.getItem("sargam_pending_otp_type") || null,
+      }),
+    });
+    const client = await ensureSupabase();
+    if (client && out.refresh_token) {
+      const { data, error } = await client.auth.setSession({
+        access_token: out.access_token,
+        refresh_token: out.refresh_token,
+      });
+      if (error) throw error;
+      await applySession(data.session || { access_token: out.access_token });
+    } else if (out.access_token) {
+      await applySession({ access_token: out.access_token });
+    } else {
+      throw new Error("Sign-in did not return a session.");
     }
-    if (!session) {
-      setAuthStatus(friendlyError(lastError?.message || "Could not verify that code"), true);
-      return;
-    }
-    await applySession(session);
   } catch (err) {
     setAuthStatus(friendlyError(err.message || "Could not verify that code"), true);
   } finally {
+    verifying = false;
     if (btn) btn.disabled = false;
   }
 }
@@ -547,15 +562,15 @@ $("generate-btn").addEventListener("click", generate);
 $("duration").addEventListener("input", updateCostHint);
 
 otpInput?.addEventListener("input", () => {
-  const digits = (otpInput.value || "").replace(/\D/g, "").slice(0, 8);
+  const need = pendingOtpLength || 8;
+  const digits = (otpInput.value || "").replace(/\D/g, "").slice(0, need);
   otpInput.value = digits;
-  // Auto-verify when a full OTP arrives (6–8 digits depending on Supabase).
-  if (/^\d{6,8}$/.test(digits) && digits.length >= 6) {
-    // Prefer 8 if that's what they keep typing; wait briefly for 8th digit.
-    clearTimeout(otpInput._autoVerifyTimer);
+  // Only auto-verify when the full code length is present (Supabase uses 8 digits).
+  clearTimeout(otpInput._autoVerifyTimer);
+  if (digits.length === need) {
     otpInput._autoVerifyTimer = setTimeout(() => {
-      if (/^\d{6,8}$/.test(otpInput.value)) verifyOtpCode();
-    }, digits.length >= 8 ? 50 : 450);
+      if ((otpInput.value || "").replace(/\D/g, "").length === need) verifyOtpCode();
+    }, 120);
   }
 });
 
