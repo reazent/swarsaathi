@@ -73,8 +73,22 @@ def site_styles() -> FileResponse:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "product": settings.product_name}
+def health() -> dict:
+    # Booleans only — helps confirm Render env vars without exposing secrets.
+    return {
+        "status": "ok",
+        "product": settings.product_name,
+        "env": settings.app_env,
+        "config": {
+            "database": bool(settings.database_url),
+            "fal_key": bool(settings.fal_key),
+            "supabase": bool(settings.supabase_url and settings.supabase_anon_key),
+            "stripe_secret": bool(settings.stripe_secret_key),
+            "stripe_publishable": bool(settings.stripe_publishable_key),
+            "stripe_webhook_secret": bool(settings.stripe_webhook_secret),
+            "resend_from": bool(settings.resend_from),
+        },
+    }
 
 
 # Marketing Sargam UI (also deployed via Cloudflare Pages from site/).
