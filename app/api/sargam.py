@@ -1,4 +1,4 @@
-"""Sargam — Stable Audio 3 via Fal, credit-metered."""
+"""Sargam — credit-metered audio generation (song + sketch modes)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import re
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -17,7 +17,7 @@ from app.config import settings
 from app.db.models import SargamGeneration
 from app.db.session import get_db
 from app.services import credits
-from app.services.fal_audio import FalError, generate_text_to_audio
+from app.services.fal_audio import FalError, generate_clip_audio, generate_song_audio
 from app.services.resend_email import EmailError, send_sargam_sign_in_code
 from app.services.supabase_auth import (
     AuthError,
@@ -36,13 +36,18 @@ class SargamUser(BaseModel):
 
 
 class GenerateIn(BaseModel):
+    # Consumer mode ids only — never vendor/model names.
+    mode: Literal["song", "clip"] = "clip"
     prompt: str = Field(min_length=3, max_length=2000)
+    lyrics: str | None = Field(default=None, max_length=4000)
+    instrumental: bool = False
     duration: float = Field(default=30, ge=5, le=380)
 
 
 class GenerateOut(BaseModel):
     id: str
     status: str
+    mode: str = "clip"
     prompt: str
     duration: float
     credits_charged: int
@@ -62,6 +67,7 @@ class MeOut(BaseModel):
     max_duration_sec: int
     free_credits_on_signup: int
     packs: list[dict]
+    modes: list[dict]
     stripe_publishable_key: str
 
 
@@ -156,6 +162,7 @@ def sargam_config() -> dict:
         "max_duration_sec": settings.sargam_max_duration_sec,
         "free_credits_on_signup": settings.sargam_free_credits,
         "packs": settings.credit_packs(),
+        "modes": settings.public_generation_modes(),
         "auth_email_configured": bool(
             settings.resend_api_key and settings.resend_from and settings.supabase_service_key
         ),
@@ -252,6 +259,7 @@ def sargam_me(
             max_duration_sec=settings.sargam_max_duration_sec,
             free_credits_on_signup=settings.sargam_free_credits,
             packs=settings.credit_packs(),
+            modes=settings.public_generation_modes(),
             stripe_publishable_key=settings.stripe_publishable_key,
         )
 
@@ -266,6 +274,7 @@ def sargam_me(
         max_duration_sec=settings.sargam_max_duration_sec,
         free_credits_on_signup=settings.sargam_free_credits,
         packs=settings.credit_packs(),
+        modes=settings.public_generation_modes(),
         stripe_publishable_key=settings.stripe_publishable_key,
     )
 
@@ -282,7 +291,13 @@ def sargam_generate(
             detail="Generation is temporarily unavailable. Please try again later.",
         )
 
-    duration = min(float(body.duration), float(settings.sargam_max_duration_sec))
+    mode = body.mode if body.mode in ("song", "clip") else "clip"
+    max_dur = (
+        settings.sargam_song_max_duration_sec
+        if mode == "song"
+        else settings.sargam_max_duration_sec
+    )
+    duration = min(float(body.duration), float(max_dur))
     cost = credits.credits_for_duration(duration)
     credits.get_or_create_account(db, user.user_id, email=user.email)
     if credits.balance(db, user.user_id) < cost:
@@ -296,11 +311,17 @@ def sargam_generate(
             },
         )
 
+    lyrics = (body.lyrics or "").strip() or None
+    if mode == "clip":
+        lyrics = None
+
     gen_id = uuid.uuid4().hex
     row = SargamGeneration(
         id=gen_id,
         user_id=user.user_id,
+        mode=mode,
         prompt=body.prompt.strip(),
+        lyrics=lyrics,
         duration_sec=duration,
         credits_charged=cost,
         status="running",
@@ -317,7 +338,15 @@ def sargam_generate(
         raise HTTPException(status_code=402, detail={"error": "insufficient_credits", "upgrade": True})
 
     try:
-        result = generate_text_to_audio(body.prompt.strip(), duration=duration)
+        if mode == "song":
+            result = generate_song_audio(
+                body.prompt.strip(),
+                duration=duration,
+                lyrics=lyrics,
+                instrumental=bool(body.instrumental),
+            )
+        else:
+            result = generate_clip_audio(body.prompt.strip(), duration=duration)
         data = result.get("data") or {}
         audio = data.get("audio") or {}
         audio_url = audio.get("url")
@@ -348,6 +377,7 @@ def sargam_generate(
     return GenerateOut(
         id=gen_id,
         status=row.status,
+        mode=row.mode,
         prompt=row.prompt,
         duration=row.duration_sec,
         credits_charged=cost,
@@ -372,6 +402,7 @@ def sargam_generation(
     return GenerateOut(
         id=row.id,
         status=row.status,
+        mode=getattr(row, "mode", None) or "clip",
         prompt=row.prompt,
         duration=row.duration_sec,
         credits_charged=row.credits_charged,

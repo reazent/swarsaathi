@@ -1,6 +1,11 @@
 # Sargam
 
-Text-to-audio product on SwarSaathi using **Stability AI Stable Audio 3 Medium** via **Fal**.
+Text-to-audio product on SwarSaathi with two **consumer modes** (model names stay internal):
+
+| UI mode | Purpose | Engine (server-side) |
+| --- | --- | --- |
+| **Full song** | Complete tracks, optional lyrics | Fal `fal-ai/ace-step` (+ `prompt-to-audio`). Target HF: `ACE-Step/acestep-v15-xl-turbo` |
+| **Music sketch** | Short beds / textures | Fal Stable Audio 3 Medium |
 
 ## Pricing (v1)
 
@@ -9,20 +14,21 @@ Text-to-audio product on SwarSaathi using **Stability AI Stable Audio 3 Medium**
 | Signup bonus | 3 credits |
 | Credit size | 30 seconds of audio |
 | Cost | `ceil(duration / 30)` credits |
-| Max duration | 180 seconds (configurable) |
+| Max duration (sketch) | 180 seconds |
+| Max duration (song) | 240 seconds |
 | Packs | Starter 20 / $9 · Studio 100 / $39 · Label 500 / $149 |
-
-Fal list price is roughly a few cents per clip; packs include margin for failed retries, support, and infra.
 
 ## API
 
-- `GET /api/v1/sargam/config` — public client config
-- `GET /api/v1/sargam/me` — credits + packs
-- `POST /api/v1/sargam/generate` — `{prompt, duration}`
+- `GET /api/v1/sargam/config` — public client config + `modes[]` (labels only)
+- `GET /api/v1/sargam/me` — credits + packs + modes
+- `POST /api/v1/sargam/generate` — `{mode, prompt, duration, lyrics?, instrumental?}`
 - `POST /api/v1/sargam/checkout` — Stripe Checkout for a pack
 - `POST /api/v1/billing/stripe/webhook` — grants credits on `checkout.session.completed`
 
-Auth: API emails a Supabase OTP via Resend → browser `verifyOtp` → Bearer token. In production, `/me` works signed-out (0 credits); generate/checkout require sign-in. In `APP_ENV=development`, anonymous `X-Client-Id` sessions are allowed for local testing.
+`mode` is only `"song"` or `"clip"`. Never send vendor model ids from the browser.
+
+Auth: API emails a Supabase OTP via Resend → browser session → Bearer token. In production, `/me` works signed-out (0 credits); generate/checkout require sign-in.
 
 See `docs/RENDER.md` §7 for Resend + Supabase service-role env vars.
 
@@ -39,7 +45,7 @@ Open http://127.0.0.1:8000/sargam/
 
 API host: **Render** (see `docs/RENDER.md`).
 
-1. Deploy API on Render with `.env` secrets.
+1. Deploy API on Render with `.env` secrets (`FAL_KEY`, ACE model envs optional — defaults in `render.yaml`).
 2. Point Stripe webhook to `https://<render-host>/api/v1/billing/stripe/webhook`.
 3. Site on Cloudflare Pages (`/sargam/`).
 4. Set `<meta name="swarsaathi-api" content="https://<render-host>" />` in `site/sargam/index.html`.

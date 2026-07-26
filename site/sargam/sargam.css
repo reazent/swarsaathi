@@ -143,6 +143,49 @@
   color: var(--ink);
   font-weight: 600;
 }
+.mode-picker {
+  margin: 0 0 1.1rem;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: .65rem;
+}
+.mode-picker legend {
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: .35rem;
+  padding: 0;
+}
+.mode-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .75rem;
+  align-items: start;
+  padding: .9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #fff;
+  cursor: pointer;
+}
+.mode-option:has(input:checked) {
+  border-color: rgba(79, 40, 95, .4);
+  background: var(--soft-plum);
+  box-shadow: 0 0 0 3px rgba(79, 40, 95, .08);
+}
+.mode-option strong { display: block; color: var(--ink); }
+.mode-option small { display: block; color: var(--muted); margin-top: .2rem; line-height: 1.45; }
+.mode-option input { margin-top: .35rem; }
+.lyrics-block { margin-top: .25rem; }
+.lyrics-block .field em { font-style: normal; font-weight: 500; color: var(--muted); }
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin: .25rem 0 1rem;
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
 .compose-panel-locked #prompt,
 .compose-panel-locked #duration,
 .compose-panel-locked #generate-btn {

@@ -91,13 +91,45 @@
     <section id="compose-panel" class="sargam-panel" aria-labelledby="compose-title">
       <h2 id="compose-title">Compose</h2>
       <p id="compose-gate" class="compose-gate">Sign in above to unlock generation and credits.</p>
+
+      <fieldset class="mode-picker" id="mode-picker">
+        <legend>What do you want to make?</legend>
+        <label class="mode-option">
+          <input type="radio" name="gen-mode" value="song" checked />
+          <span>
+            <strong>Full song</strong>
+            <small>Complete track with structure — add lyrics if you like.</small>
+          </span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="gen-mode" value="clip" />
+          <span>
+            <strong>Music sketch</strong>
+            <small>Short mood beds, loops, and textures for other uses.</small>
+          </span>
+        </label>
+      </fieldset>
+
       <label class="field">
-        <span>Prompt</span>
-        <textarea id="prompt" rows="4" maxlength="2000" placeholder="A calm afternoon tanpura-like drone with soft tabla pulses and warm harmonium, 72 BPM, meditative"></textarea>
+        <span id="prompt-label">Style &amp; mood</span>
+        <textarea id="prompt" rows="4" maxlength="2000" placeholder="Bollywood romantic ballad, warm strings, soft male vocals, rainy-night feel, 72 BPM"></textarea>
       </label>
+
+      <div id="lyrics-block" class="lyrics-block">
+        <label class="field">
+          <span>Lyrics <em>(optional)</em></span>
+          <textarea id="lyrics" rows="5" maxlength="4000" placeholder="[verse]&#10;Moonlight on the terrace…&#10;[chorus]&#10;Stay a little longer…"></textarea>
+          <small>Use markers like [verse], [chorus], [bridge]. Leave blank to auto-write lyrics, or tick instrumental.</small>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="instrumental" />
+          <span>Instrumental only (no vocals)</span>
+        </label>
+      </div>
+
       <label class="field">
         <span>Duration (seconds)</span>
-        <input id="duration" type="number" min="5" max="180" value="30" />
+        <input id="duration" type="number" min="5" max="240" value="60" />
         <small id="cost-hint">Uses about 1 credit per 30 seconds.</small>
       </label>
       <div class="sargam-actions">
@@ -121,7 +153,7 @@
     <div><strong>Legal</strong><a href="/privacy.html">Privacy</a><a href="/support.html">Support</a></div>
   </footer>
 
-  <script type="module" src="/sargam/sargam.js?v=20260726b"></script>
+  <script type="module" src="/sargam/sargam.js?v=20260726c"></script>
   <script>
     // Surface a clear error if the module never boots (CDN/cache/network).
     setTimeout(function () {

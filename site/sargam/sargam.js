@@ -148,13 +148,57 @@ function renderPacks(packs) {
   }
 }
 
+let lastGenMode = null;
+
+function selectedMode() {
+  const checked = document.querySelector('input[name="gen-mode"]:checked');
+  return checked?.value === "song" ? "song" : "clip";
+}
+
+function modeMeta(modeId) {
+  const modes = me?.modes || config?.modes || [];
+  return modes.find((m) => m.id === modeId) || null;
+}
+
+function applyModeUi() {
+  const mode = selectedMode();
+  const meta = modeMeta(mode);
+  const lyricsBlock = $("lyrics-block");
+  const promptLabel = $("prompt-label");
+  const prompt = $("prompt");
+  const duration = $("duration");
+  const isSong = mode === "song";
+
+  if (lyricsBlock) lyricsBlock.hidden = !isSong;
+  if (promptLabel) promptLabel.textContent = isSong ? "Style & mood" : "Prompt";
+  if (prompt) {
+    prompt.placeholder = isSong
+      ? "Bollywood romantic ballad, warm strings, soft vocals, rainy-night feel, 72 BPM"
+      : "A calm afternoon tanpura-like drone with soft tabla pulses and warm harmonium, 72 BPM, meditative";
+  }
+  if (duration) {
+    const max = meta?.max_duration_sec || (isSong ? 240 : 180);
+    const fallback = meta?.default_duration || (isSong ? 60 : 30);
+    duration.max = max;
+    duration.min = isSong ? 15 : 5;
+    if (lastGenMode !== mode) {
+      duration.value = String(fallback);
+      lastGenMode = mode;
+    } else if (Number(duration.value || 0) > max) {
+      duration.value = String(max);
+    }
+  }
+  updateCostHint();
+}
+
 function updateCostHint() {
   const duration = Number($("duration")?.value || 30);
   const per = me?.seconds_per_credit || config?.seconds_per_credit || 30;
   const cost = Math.max(1, Math.ceil(duration / per));
   const hint = $("cost-hint");
   if (hint) {
-    hint.textContent = `This generation will use about ${cost} credit${cost === 1 ? "" : "s"} (${per}s per credit).`;
+    const mode = selectedMode() === "song" ? "Full song" : "Music sketch";
+    hint.textContent = `${mode} · about ${cost} credit${cost === 1 ? "" : "s"} (${per}s per credit).`;
   }
 }
 
@@ -283,20 +327,32 @@ async function generate() {
     focusAuth();
     return;
   }
+  const mode = selectedMode();
   const prompt = ($("prompt")?.value || "").trim();
-  const duration = Number($("duration")?.value || 30);
+  const lyrics = ($("lyrics")?.value || "").trim();
+  const instrumental = Boolean($("instrumental")?.checked);
+  const duration = Number($("duration")?.value || (mode === "song" ? 60 : 30));
   if (prompt.length < 3) {
-    setStatus("Enter a longer prompt.", true);
+    setStatus(mode === "song" ? "Describe the style and mood a bit more." : "Enter a longer prompt.", true);
     return;
   }
   const genBtn = $("generate-btn");
   if (genBtn) genBtn.disabled = true;
-  setStatus("Generating — this can take up to a minute…");
+  setStatus(
+    mode === "song"
+      ? "Writing your song — this can take a couple of minutes…"
+      : "Generating sketch — this can take up to a minute…",
+  );
   if (player) player.hidden = true;
   try {
+    const payload = { mode, prompt, duration };
+    if (mode === "song") {
+      payload.lyrics = instrumental ? "" : lyrics;
+      payload.instrumental = instrumental;
+    }
     const out = await api("/api/v1/sargam/generate", {
       method: "POST",
-      body: JSON.stringify({ prompt, duration }),
+      body: JSON.stringify(payload),
     });
     if (creditChip) creditChip.textContent = `${out.credits_remaining} credits`;
     if (out.audio_url && player) {
@@ -579,6 +635,7 @@ async function boot() {
   setAuthStatus("Step 1: enter your email, then tap Email me a code.");
   try {
     config = await api("/api/v1/sargam/config");
+    applyModeUi();
     await syncSession();
     try {
       await refreshMe();
@@ -622,6 +679,14 @@ function bindUi() {
   $("signout-btn")?.addEventListener("click", signOut);
   $("generate-btn")?.addEventListener("click", generate);
   $("duration")?.addEventListener("input", updateCostHint);
+  document.querySelectorAll('input[name="gen-mode"]').forEach((el) => {
+    el.addEventListener("change", applyModeUi);
+  });
+  $("instrumental")?.addEventListener("change", () => {
+    const lyrics = $("lyrics");
+    if (lyrics) lyrics.disabled = Boolean($("instrumental")?.checked);
+  });
+  applyModeUi();
 
   otpInput?.addEventListener("input", () => {
     const need = pendingOtpLength || 8;

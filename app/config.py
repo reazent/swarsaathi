@@ -21,17 +21,44 @@ class Settings(BaseSettings):
     free_daily_analyses: int = 5
     pro_client_ids: str = ""
 
-    # --- Sargam (Stable Audio via Fal) ---
+    # --- Sargam (audio generation via Fal) ---
     product_name: str = "Sargam"
     fal_key: str = ""
+    # Clip / music-sketch engine (Stable Audio 3).
     fal_model_id: str = "fal-ai/stable-audio-3/medium/text-to-audio"
     stability_model_id: str = "stabilityai/stable-audio-3-medium"
+    # Full-song engine (Fal ACE-Step). Target HF id kept for docs / future self-host.
+    fal_ace_model_id: str = "fal-ai/ace-step"
+    fal_ace_prompt_model_id: str = "fal-ai/ace-step/prompt-to-audio"
+    ace_step_model_ref: str = "ACE-Step/acestep-v15-xl-turbo"
     sargam_free_credits: int = 3
     sargam_seconds_per_credit: int = 30
     sargam_max_duration_sec: int = 180
+    sargam_song_max_duration_sec: int = 240
     sargam_public_url: str = "https://swarsaathi.com/sargam/"
     # JSON map pack_id -> {credits, amount_cents, label}; overridable via env.
     sargam_credit_packs_json: str = ""
+
+    def public_generation_modes(self) -> list[dict]:
+        """Consumer-facing modes — never expose vendor/model ids here."""
+        return [
+            {
+                "id": "song",
+                "label": "Full song",
+                "description": "A complete track with structure — optional lyrics, longer form.",
+                "default_duration": 60,
+                "max_duration_sec": self.sargam_song_max_duration_sec,
+                "supports_lyrics": True,
+            },
+            {
+                "id": "clip",
+                "label": "Music sketch",
+                "description": "Short mood beds, loops, and textures for other creative uses.",
+                "default_duration": 30,
+                "max_duration_sec": self.sargam_max_duration_sec,
+                "supports_lyrics": False,
+            },
+        ]
 
     # --- Auth ---
     supabase_url: str = ""

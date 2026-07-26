@@ -94,13 +94,16 @@ class CreditLedger(Base):
 
 
 class SargamGeneration(Base):
-    """One Stable Audio generation request."""
+    """One Sargam generation request (song or clip)."""
 
     __tablename__ = "sargam_generations"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(128), index=True)
+    # Consumer mode id: "song" | "clip" (never a vendor model name).
+    mode: Mapped[str] = mapped_column(String(32), default="clip")
     prompt: Mapped[str] = mapped_column(Text)
+    lyrics: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration_sec: Mapped[float] = mapped_column(Float, default=30.0)
     credits_charged: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[str] = mapped_column(String(32), default="pending")

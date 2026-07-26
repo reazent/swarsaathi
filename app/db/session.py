@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
@@ -33,8 +33,31 @@ def _sqlite_fk(dbapi_connection, connection_record) -> None:
         cursor.close()
 
 
+def _ensure_sargam_columns() -> None:
+    """Add new Sargam columns on existing DBs (create_all does not alter)."""
+    try:
+        insp = inspect(engine)
+        if "sargam_generations" not in insp.get_table_names():
+            return
+        existing = {c["name"] for c in insp.get_columns("sargam_generations")}
+    except Exception:
+        return
+
+    alters: list[str] = []
+    if "mode" not in existing:
+        alters.append("ALTER TABLE sargam_generations ADD COLUMN mode VARCHAR(32) DEFAULT 'clip'")
+    if "lyrics" not in existing:
+        alters.append("ALTER TABLE sargam_generations ADD COLUMN lyrics TEXT")
+    if not alters:
+        return
+    with engine.begin() as conn:
+        for stmt in alters:
+            conn.execute(text(stmt))
+
+
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    _ensure_sargam_columns()
 
 
 def get_db() -> Generator[Session, None, None]:

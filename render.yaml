@@ -20,12 +20,20 @@ services:
         value: fal-ai/stable-audio-3/medium/text-to-audio
       - key: STABILITY_MODEL_ID
         value: stabilityai/stable-audio-3-medium
+      - key: FAL_ACE_MODEL_ID
+        value: fal-ai/ace-step
+      - key: FAL_ACE_PROMPT_MODEL_ID
+        value: fal-ai/ace-step/prompt-to-audio
+      - key: ACE_STEP_MODEL_REF
+        value: ACE-Step/acestep-v15-xl-turbo
       - key: SARGAM_FREE_CREDITS
         value: "3"
       - key: SARGAM_SECONDS_PER_CREDIT
         value: "30"
       - key: SARGAM_MAX_DURATION_SEC
         value: "180"
+      - key: SARGAM_SONG_MAX_DURATION_SEC
+        value: "240"
       - key: CORS_ORIGINS
         value: https://swarsaathi.com,https://www.swarsaathi.com,http://localhost:8000,http://127.0.0.1:8000
       - key: POSTHOG_HOST
