@@ -21,7 +21,7 @@ services:
       - key: STABILITY_MODEL_ID
         value: stabilityai/stable-audio-3-medium
       - key: RUNWARE_ACE_MODEL_ID
-        value: runware:ace-step@v1.5-xl-turbo
+        value: runware:ace-step@v1.5-turbo
       - key: WAVESPEED_ACE_MODEL_ID
         value: wavespeed-ai/ace-step-1.5
       - key: FAL_ACE_MODEL_ID
@@ -29,7 +29,7 @@ services:
       - key: FAL_ACE_PROMPT_MODEL_ID
         value: fal-ai/ace-step/prompt-to-audio
       - key: ACE_STEP_MODEL_REF
-        value: ACE-Step/acestep-v15-xl-turbo
+        value: ACE-Step/Ace-Step1.5
       - key: SARGAM_SONG_PROVIDER
         value: auto
       # Modal song host is already deployed as app `sargam-ace-step`.

@@ -1,4 +1,4 @@
-"""Sargam full-song generation on Modal — ACE-Step 1.5 XL Turbo.
+"""Sargam full-song generation on Modal — ACE-Step 1.5 (acestep-v15-turbo).
 
 Deploy:
   modal deploy modal_apps/ace_step_song.py
@@ -6,8 +6,8 @@ Deploy:
 Smoke test (after deploy):
   modal run modal_apps/ace_step_song.py --prompt "warm bollywood ballad" --duration 30
 
-The Render API calls the authenticated generate web endpoint with
-MODAL_TOKEN_ID / MODAL_TOKEN_SECRET (Modal-Key / Modal-Secret headers).
+The Render API calls MusicGenerator.run via the Modal Python SDK
+(MODAL_TOKEN_ID / MODAL_TOKEN_SECRET).
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ from uuid import uuid4
 import modal
 
 APP_NAME = "sargam-ace-step"
-# Best hosted-quality checkpoint in the ACE-Step 1.5 family (4B DiT).
-DEFAULT_CONFIG = "acestep-v15-xl-turbo"
+# HF Ace-Step1.5 / acestep-v15-turbo (2B) — better fit than XL turbo on A10 for song quality.
+DEFAULT_CONFIG = "acestep-v15-turbo"
 DEFAULT_LM = "acestep-5Hz-lm-4B"
 
 checkpoints_dir = "/opt/ace-step/checkpoints"
@@ -62,24 +62,7 @@ serve_image = modal.Image.debian_slim(python_version="3.12").pip_install(
 app = modal.App(APP_NAME)
 
 
-def _ensure_xl_turbo_weights() -> None:
-    """Download ACE-Step XL turbo weights into the shared Volume if missing."""
-    from huggingface_hub import snapshot_download
-
-    target = Path(checkpoints_dir) / "acestep-v15-xl-turbo"
-    marker = target / "config.json"
-    if marker.exists() or any(target.glob("*.safetensors")):
-        return
-    target.mkdir(parents=True, exist_ok=True)
-    snapshot_download(
-        repo_id="ACE-Step/acestep-v15-xl-turbo",
-        local_dir=str(target),
-        local_dir_use_symlinks=False,
-    )
-
-
 @app.cls(
-    # A10 (24GB) works without Modal L40S billing; upgrade to L40S/A100-80GB for XL headroom.
     gpu="A10",
     image=image,
     volumes={checkpoints_dir: model_cache, audio_dir: audio_cache},
@@ -101,10 +84,7 @@ class MusicGenerator:
         Path(checkpoints_dir).mkdir(parents=True, exist_ok=True)
         Path(audio_dir).mkdir(parents=True, exist_ok=True)
 
-        # Base ACE-Step 1.5 assets + optional XL turbo DiT override.
         ensure_main_model(checkpoints_dir=checkpoints_dir)
-        if "xl" in config_path:
-            _ensure_xl_turbo_weights()
         ensure_lm_model(model_name=lm_model_name, checkpoints_dir=checkpoints_dir)
 
         self.dit_handler = AceStepHandler()
@@ -138,22 +118,59 @@ class MusicGenerator:
         manual_seeds: Optional[int] = None,
         instrumental: bool = False,
     ) -> dict[str, Any]:
-        from acestep.inference import GenerationConfig, GenerationParams, generate_music
+        from acestep.inference import (
+            GenerationConfig,
+            GenerationParams,
+            create_sample,
+            generate_music,
+        )
 
-        lyric_text = "[Instrumental]" if instrumental else (lyrics or "").strip()
-        if not lyric_text:
-            lyric_text = (
-                f"[verse]\n{prompt.strip()[:280]}\n\n"
-                "[chorus]\nHold this feeling through the night\n"
-                "Every note a thread of light\n"
+        query = prompt.strip()
+        user_lyrics = (lyrics or "").strip()
+        dur = max(15.0, min(float(duration), 240.0))
+
+        caption = query
+        lyric_text = "[Instrumental]" if instrumental else user_lyrics
+        bpm = None
+        keyscale = ""
+        vocal_language = "unknown"
+
+        # No user lyrics + vocals wanted → LM Simple Mode invents caption + real lyrics
+        # (never paste the style prompt into the lyric field — that causes sung prompt-echo).
+        if not instrumental and not user_lyrics:
+            sample = create_sample(
+                self.llm_handler,
+                query=query,
+                instrumental=False,
+            )
+            if not sample.success:
+                raise RuntimeError(f"Lyric/sample planning failed: {sample.error}")
+            caption = (sample.caption or query).strip() or query
+            lyric_text = (sample.lyrics or "").strip()
+            if not lyric_text or lyric_text.lower() in {"[instrumental]", "[inst]"}:
+                raise RuntimeError("LM returned empty/instrumental lyrics for a vocal request")
+            bpm = getattr(sample, "bpm", None)
+            keyscale = getattr(sample, "keyscale", None) or ""
+            vocal_language = (
+                getattr(sample, "vocal_language", None)
+                or getattr(sample, "language", None)
+                or "unknown"
             )
 
-        dur = max(15.0, min(float(duration), 240.0))
+        if instrumental:
+            lyric_text = "[Instrumental]"
+
         params = GenerationParams(
-            caption=prompt.strip(),
-            lyrics=lyric_text,
+            caption=caption[:500],
+            lyrics=lyric_text[:4000],
             duration=dur,
             thinking=True,
+            instrumental=bool(instrumental),
+            bpm=bpm,
+            keyscale=keyscale,
+            vocal_language=vocal_language if not instrumental else "unknown",
+            inference_steps=8,
+            shift=3.0,  # recommended for turbo checkpoints
         )
         config = GenerationConfig(
             audio_format=format,
@@ -189,7 +206,10 @@ class MusicGenerator:
             "duration": dur,
             "seed": seed,
             "model": self.config_path,
+            "caption": caption[:200],
+            "lyrics_preview": lyric_text[:160],
         }
+
 
 @app.function(
     image=serve_image,
@@ -203,7 +223,6 @@ def serve_audio(file_id: str, format: str = "mp3"):
     from fastapi.responses import Response
 
     fmt = format.lower() if format in {"mp3", "wav"} else "mp3"
-    # Basic path safety — only hex ids we mint.
     if not file_id or any(c not in "0123456789abcdef" for c in file_id.lower()):
         raise HTTPException(status_code=400, detail="invalid file_id")
     path = Path(audio_dir) / f"{file_id}.{fmt}"
@@ -235,4 +254,6 @@ def main(
         instrumental=instrumental,
     )
     print("generated:", meta)
-    print(f"file_id={meta['file_id']} format={meta['format']}")
+    print(f"file_id={meta['file_id']} format={meta['format']} model={meta.get('model')}")
+    if meta.get("lyrics_preview"):
+        print("lyrics_preview:", meta["lyrics_preview"])

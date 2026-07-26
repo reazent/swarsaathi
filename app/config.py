@@ -34,12 +34,12 @@ class Settings(BaseSettings):
     # Public audio fetch URL from `modal deploy` (serve_audio web function).
     modal_ace_audio_url: str = "https://sumitv77--sargam-ace-audio.modal.run"
     runware_api_key: str = ""
-    runware_ace_model_id: str = "runware:ace-step@v1.5-xl-turbo"
+    runware_ace_model_id: str = "runware:ace-step@v1.5-turbo"
     wavespeed_api_key: str = ""
     wavespeed_ace_model_id: str = "wavespeed-ai/ace-step-1.5"
     fal_ace_model_id: str = "fal-ai/ace-step"
     fal_ace_prompt_model_id: str = "fal-ai/ace-step/prompt-to-audio"
-    ace_step_model_ref: str = "ACE-Step/acestep-v15-xl-turbo"
+    ace_step_model_ref: str = "ACE-Step/Ace-Step1.5"
     # auto | modal | runware | wavespeed | fal
     sargam_song_provider: str = "auto"
     sargam_free_credits: int = 3

@@ -3,9 +3,9 @@
 Model identifiers stay server-side; the product UI only exposes consumer modes.
 
 Song path preference (best → fallback):
-  1. Modal self-hosted ACE-Step v1.5 XL Turbo (`modal_apps/ace_step_song.py`)
-  2. Runware `runware:ace-step@v1.5-xl-turbo` (managed 4B)
-  3. WaveSpeed `wavespeed-ai/ace-step-1.5` (managed 2B)
+  1. Modal self-hosted ACE-Step 1.5 / acestep-v15-turbo (`modal_apps/ace_step_song.py`)
+  2. Runware `runware:ace-step@v1.5-turbo` (managed)
+  3. WaveSpeed `wavespeed-ai/ace-step-1.5` (managed)
   4. Fal `fal-ai/ace-step` (classic — last resort)
 
 Music sketches stay on Fal Stable Audio 3.
@@ -164,7 +164,7 @@ def _generate_song_modal(
     instrumental: bool,
     timeout_sec: float,
 ) -> dict[str, Any]:
-    """Self-hosted ACE-Step XL Turbo on Modal (see modal_apps/ace_step_song.py)."""
+    """Self-hosted ACE-Step 1.5 on Modal (see modal_apps/ace_step_song.py)."""
     token_id = settings.modal_token_id.strip()
     token_secret = settings.modal_token_secret.strip()
     if not token_id or not token_secret:
@@ -212,7 +212,7 @@ def _generate_song_modal(
             "audio": {"url": audio_url},
             "seed": meta.get("seed"),
         },
-        "model": meta.get("model") or "acestep-v15-xl-turbo",
+        "model": meta.get("model") or "acestep-v15-turbo",
         "provider": "modal",
     }
 
@@ -239,7 +239,7 @@ def _generate_song_runware(
     timeout_sec: float,
 ) -> dict[str, Any]:
     """Best quality: ACE-Step 1.5 XL Turbo (4B) on Runware."""
-    model = settings.runware_ace_model_id.strip() or "runware:ace-step@v1.5-xl-turbo"
+    model = settings.runware_ace_model_id.strip() or "runware:ace-step@v1.5-turbo"
     text = prompt.strip()
     if len(text) < 2:
         raise FalError("Song prompt is too short")
